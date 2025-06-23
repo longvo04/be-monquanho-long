@@ -59,7 +59,6 @@ const deleteImageFromCloudinary = async (publicId) => {
     }
 };
 
-
 // Khởi tạo Multer với cấu hình Cloudinary
 const uploadImage = multer({ storage: storageCloudinary });
 const uploadFile = multer({ storage: storageCloudinaryFile });
