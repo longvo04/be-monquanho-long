@@ -8,6 +8,7 @@ const CommunityPostsSchema = new mongoose.Schema({
     status: { type: String, default: "active" }, // Trạng thái: active/hidden/deleted
     created_at: { type: Date, default: Date.now }, // Thời điểm gửi
     updated_at: { type: Date, default: Date.now }, // Cập nhật trả lời
+    slug: { type: String, unique: true }, // Đường dẫn thân thiện với SEO
 });
 
 module.exports = mongoose.model("CommunityPosts", CommunityPostsSchema);

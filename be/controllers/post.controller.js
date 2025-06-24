@@ -2,34 +2,19 @@ const express = require("express");
 const router = express.Router();
 const postService = require("../services/post.service");
 const verifyToken = require("../middleware/VerifyToken.middleware");
-const { uploadImage } = require("../utils/cloudinary.util");
+const { uploadImageMemory } = require("../middleware/multer.middleware");
 
 // Tạo bài đăng mới
-router.post("/create", verifyToken, uploadImage.array('images', 5), async (req, res) => {
+router.post("/create", verifyToken, uploadImageMemory , async (req, res) => {
     try {
         const postData = req.body;
-
-        
-        let imageUrls = [];
-        // Xử lý ảnh nếu có
-        if (req.files && req.files.length > 0) {
-          imageUrls = req.files.map(file => file.path); // Lấy URL ảnh từ file upload
-        }
-        const newPost = await postService.createPost(postData, imageUrls);
+        const imageFiles = req.files || [];
+        const newPost = await postService.createPost(postData, imageFiles);
         return res.status(201).json({
             error: 0,
             error_text: "Bài đăng đã được tạo thành công!",
             data_name: "Bài đăng",
-            data: [{
-                _id: newPost._id,
-                title: newPost.title,
-                content: newPost.content,
-                created_at: newPost.created_at,
-                user_id: newPost.user_id,
-                category_id: newPost.category_id,
-                status: newPost.status,
-                images: imageUrls, // Trả về danh sách ảnh đã upload
-            }],
+            data: [newPost],
         });
     } catch (error) {
         console.error("Lỗi tạo bài đăng:", error.message);
@@ -83,6 +68,49 @@ router.get("/:id", async (req, res) => {
     }
 });
 
+// Lọc bài đăng theo danh mục
+router.get("/filter/:categoryId", async (req, res) => {
+    try {
+        const categoryId = req.params.categoryId;
+        const posts = await postService.getPostsByCategory(categoryId);
+        return res.status(200).json({
+            error: 0,
+            error_text: "Lấy danh sách bài đăng theo danh mục thành công!",
+            data_name: "Danh sách bài đăng",
+            data: posts,
+        });
+    } catch (error) {
+        console.error("Lỗi khi lọc bài đăng theo danh mục:", error.message);
+        res.status(500).json({ message: "Lỗi khi lọc bài đăng theo danh mục: " + error.message });
+    }
+});
+
+// Cập nhật bài đăng
+router.put("/update/:id", verifyToken, uploadImageMemory, async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const postData = req.body;
+        const imageFiles = req.files || [];
+        const imagesToDelete = Array.isArray(req.body.imagesToDelete) ? req.body.imagesToDelete : [req.body.imagesToDelete];
+        console.log("Images to delete:", imagesToDelete);
+        const updatedPost = await postService.updatePost(postId, postData, imageFiles, imagesToDelete);
+        return res.status(200).json({
+            error: 0,
+            error_text: "Bài đăng đã được cập nhật thành công!",
+            data_name: "Bài đăng",
+            data: [updatedPost],
+        });
+    } catch (error) {
+        console.error("Lỗi khi cập nhật bài đăng:", error.message);
+        return res.status(500).json({
+            error: 500,
+            error_text: "Lỗi server!",
+            data_name: "Bài đăng",
+            data: [],
+        });
+    }
+});
+
 // Xóa bài đăng
 router.delete("/delete/:id", verifyToken, async (req, res) => {
     try {
@@ -104,4 +132,26 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
         });
     }
 });
+
+// Xóa tất cả các bài đăng (db cleaning for development only)
+router.post("/delete-all", async (req, res) => {
+    try {
+        const deletedPosts = await postService.deleteAllPosts();
+        return res.status(200).json({
+            error: 0,
+            error_text: "Đã xóa tất cả bài đăng thành công!",
+            data_name: "Bài đăng",
+            data: deletedPosts,
+        });
+    } catch (error) {
+        console.error("Lỗi khi xóa tất cả bài đăng:", error.message);
+        return res.status(500).json({
+            error: 500,
+            error_text: "Lỗi server!",
+            data_name: "Bài đăng",
+            data: [],
+        });
+    }
+});
+
 module.exports = router;

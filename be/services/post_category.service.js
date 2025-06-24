@@ -20,6 +20,19 @@ exports.getAllCategory = async () => {
     }
 }
 
+exports.getCategory = async (id) => {
+    try {
+        const category = await PostCategoriesModel.findById(id);
+        if (!category) {
+            throw new Error("Danh mục không tồn tại");
+        }
+        return category;
+    } catch (error) {
+        console.error("Lỗi khi lấy danh mục:", error.message);
+        throw new Error("Lỗi khi lấy danh mục: " + error.message);
+    }
+}
+
 exports.updateCategory = async (id, updateData) => {
     try {
         return await PostCategoriesModel.findByIdAndUpdate(

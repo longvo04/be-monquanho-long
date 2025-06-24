@@ -17,4 +17,4 @@ const toSlug = (title) => {
       .trim();
   }; 
   
-  module.exports = toSlug;
+module.exports = toSlug;

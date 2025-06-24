@@ -4,6 +4,9 @@ const cloudinary = require('../configs/cloudinary.config');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 
+// Cấu hình Multer để lưu file tạm thời trong bộ nhớ
+const storageMemory = multer.memoryStorage();
+
 // Cấu hình Multer cho ảnh -> Lưu trên Cloudinary
 const storageCloudinary = new CloudinaryStorage({
     cloudinary: cloudinary,
@@ -51,7 +54,7 @@ const updateImageOnCloudinary = async (oldPublicId, newFilePath, folder = 'image
 // Hàm xóa ảnh trên Cloudinary
 const deleteImageFromCloudinary = async (publicId) => {
     try {
-        const result = await cloudinary.uploader.destroy(publicId);
+        const result = await cloudinary.uploader.destroy(publicId, { invalidate: true });
         return result;
     } catch (error) {
         console.error("Lỗi khi xóa ảnh trên Cloudinary:", error.message);
@@ -59,11 +62,18 @@ const deleteImageFromCloudinary = async (publicId) => {
     }
 };
 
+// Cấu hình Multer lưu ảnh tạm vào bộ nhớ
+const uploadImageMemory = multer({
+    storage: storageMemory,  // Dùng bộ nhớ tạm
+    limits: { fileSize: 3 * 1024 * 1024 },  // 3Mb Maximum
+  }).array('images', 5);  // Cho phép xử lý tối đa 5 ảnh
+
 // Khởi tạo Multer với cấu hình Cloudinary
 const uploadImage = multer({ storage: storageCloudinary });
+
 const uploadFile = multer({ storage: storageCloudinaryFile });
 // Cấu hình Multer lưu file tạm vào thư mục "uploads/"
 const upload = multer({ dest: 'uploads/' });
 
 // Xuất các module
-module.exports = { upload, uploadImage, uploadFile, deleteImageFromCloudinary, updateImageOnCloudinary };
+module.exports = { uploadImageMemory, upload, uploadImage, uploadFile, deleteImageFromCloudinary, updateImageOnCloudinary };

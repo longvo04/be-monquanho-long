@@ -42,6 +42,36 @@ router.get("/list", async (req, res) => {
     }
 });
 
+// Lấy chi tiết danh mục theo ID
+router.get("/:id", async (req, res) => {
+    try {
+        const categoryId = req.params.id;
+        const category = await categoryService.getCategory(categoryId);
+        if (!category) {
+            return res.status(404).json({
+                error: 404,
+                error_text: "Danh mục không tồn tại!",
+                data_name: "Danh mục",
+                data: [],
+            });
+        }
+        return res.status(200).json({
+            error: 0,
+            error_text: "Lấy danh mục thành công!",
+            data_name: "Danh mục",
+            data: [category],
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy danh mục:", error.message);
+        return res.status(500).json({
+            error: 500,
+            error_text: "Lỗi server!",
+            data_name: "Danh mục",
+            data: [],
+        });
+    }
+});
+
 // Cập nhật danh mục
 router.put("/update/:id", verifyToken, checkRole("admin"), async (req, res) => {
     try {
