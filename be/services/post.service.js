@@ -4,43 +4,8 @@ const PostLikesModel = require('../models/post/post_likes.model');
 const PostCategoriesModel = require('../models/post/post_categories.model');
 const PostImagesModel = require('../models/post/post_images.model');
 const cloudinary = require('../configs/cloudinary.config');
-const { deleteImageFromCloudinary } = require('../middleware/multer.middleware');
-const toSlug = require('../utils/slug.util')
-
-const uploadImageToCloudinary = async (imageFiles) => {
-    try {
-        const uploadPromises = imageFiles.map((file) => {
-            return new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream(
-                    {
-                        folder: 'images',
-                        format: file.mimetype.split('/')[1], // Định dạng file
-                        public_id: Date.now() + '-' + file.originalname.replace(/\.[^/.]+$/, ""), // public_id sẽ là thời gian hiện tại + tên file gốc
-                        resource_type: 'image',
-                    },
-                    (error, result) => {
-                        if (error) {
-                            reject(error);
-                        }
-                        resolve(result);
-                    }
-                );
-
-                // Tải file lên Cloudinary từ buffer
-                stream.end(file.buffer); // dữ liệu file ảnh được lưu trong bộ nhớ tạm thời
-            });
-        });
-
-        const uploadResults = await Promise.all(uploadPromises);
-        const imageUrls = uploadResults.map((result) => result.secure_url);
-
-        return imageUrls;
-    } catch (error) {
-        console.error('Có lỗi xảy ra khi tải ảnh lên cloudinary:', error);
-        throw new Error('Tải ảnh lên thất bại');
-    }
-};
-
+const { uploadImageToCloudinary, deleteImageFromCloudinary } = require('../middleware/cloudinary.middleware');
+const toSlug = require('../utils/slug.util');
 // Tạo Post mới
 exports.createPost = async (postData, imageFiles) => {
     try {

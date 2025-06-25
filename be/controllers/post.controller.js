@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const postService = require("../services/post.service");
 const verifyToken = require("../middleware/VerifyToken.middleware");
-const { uploadImageMemory } = require("../middleware/multer.middleware");
+const { uploadImageMemory } = require("../middleware/cloudinary.middleware");
 
 // Tạo bài đăng mới
 router.post("/create", verifyToken, uploadImageMemory , async (req, res) => {

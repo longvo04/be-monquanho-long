@@ -51,6 +51,41 @@ const updateImageOnCloudinary = async (oldPublicId, newFilePath, folder = 'image
     }
 };
 
+// Hàm tải ảnh lên Cloudinary từ bộ nhớ tạm thời lên cloudinary
+const uploadImageToCloudinary = async (imageFiles) => {
+    try {
+        const uploadPromises = imageFiles.map((file) => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: 'images',
+                        format: file.mimetype.split('/')[1], // Định dạng file
+                        public_id: Date.now() + '-' + file.originalname.replace(/\.[^/.]+$/, ""), // public_id sẽ là thời gian hiện tại + tên file gốc
+                        resource_type: 'image',
+                    },
+                    (error, result) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        resolve(result);
+                    }
+                );
+
+                // Tải file lên Cloudinary từ buffer
+                stream.end(file.buffer); // dữ liệu file ảnh được lưu trong bộ nhớ tạm thời
+            });
+        });
+
+        const uploadResults = await Promise.all(uploadPromises);
+        const imageUrls = uploadResults.map((result) => result.secure_url);
+
+        return imageUrls;
+    } catch (error) {
+        console.error('Có lỗi xảy ra khi tải ảnh lên cloudinary:', error);
+        throw new Error('Tải ảnh lên thất bại');
+    }
+};
+
 // Hàm xóa ảnh trên Cloudinary
 const deleteImageFromCloudinary = async (publicId) => {
     try {
@@ -76,4 +111,4 @@ const uploadFile = multer({ storage: storageCloudinaryFile });
 const upload = multer({ dest: 'uploads/' });
 
 // Xuất các module
-module.exports = { uploadImageMemory, upload, uploadImage, uploadFile, deleteImageFromCloudinary, updateImageOnCloudinary };
+module.exports = { uploadImageMemory, upload, uploadImage, uploadFile, uploadImageToCloudinary, deleteImageFromCloudinary, updateImageOnCloudinary };
