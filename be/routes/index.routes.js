@@ -4,6 +4,7 @@ const authRouter = require("../controllers/authenticate.controller");
 const contactRouter = require("../controllers/contact.controller");
 const postRouter = require("../controllers/post.controller");
 const categoryRouter = require("../controllers/category.controller");
+const commentRouter = require("../controllers/comment.controller");
 
 // Mount toàn bộ router của controller vào /auth
 router.use("/auth", authRouter);
@@ -15,5 +16,7 @@ router.use("/contact", contactRouter);
 router.use("/post", postRouter);
 
 router.use("/category", categoryRouter);
+
+router.use("/comment", commentRouter);
 
 module.exports = router;

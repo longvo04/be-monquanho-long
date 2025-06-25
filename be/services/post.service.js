@@ -3,9 +3,10 @@ const CommunityCommentsModel = require('../models/comment/community_comments.mod
 const PostLikesModel = require('../models/post/post_likes.model');
 const PostCategoriesModel = require('../models/post/post_categories.model');
 const PostImagesModel = require('../models/post/post_images.model');
-const cloudinary = require('../configs/cloudinary.config');
+const commentService = require('./comment.service');
 const { uploadImageToCloudinary, deleteImageFromCloudinary } = require('../middleware/cloudinary.middleware');
 const toSlug = require('../utils/slug.util');
+
 // Tạo Post mới
 exports.createPost = async (postData, imageFiles) => {
     try {
@@ -33,28 +34,45 @@ exports.createPost = async (postData, imageFiles) => {
 exports.getAllPostsWithDetails = async () => {
     try {
         // Lấy tất cả bài viết
-        const posts = await CommunityPostsModel.find();
-
+        const posts = await CommunityPostsModel.find()
+            .populate({
+                path: "user",
+                select: '_id name avatar_url',
+            })
+            .populate({
+                path: "category",
+                select: '_id name description',
+            })
+            .select('_id user_id category_id title content status created_at updated_at slug')
+            
         // Lấy chi tiết cho từng bài viết
         const postsWithDetails = await Promise.all(posts.map(async (post) => {
             // Ảnh của bài viết
             const images = await PostImagesModel.find({ post_id: post._id }).select('_id image_url');
 
             // Bình luận của bài viết
-            const comments = await CommunityCommentsModel.find({ post_id: post._id }).select('_id content user_id created_at');
+            const comments = await commentService.getCommentsByPostId(post._id);
+            // const comments = await CommunityCommentsModel.find({ post_id: post._id, parent_id: null })
+            //     .populate({
+            //         path: "childComment",
+            //         select: '_id content user_id created_at updated_at',
+            //         populate: {
+            //             path: "user",
+            //             select: '_id name avatar_url',
+            //         }
+            //     })
+            //     .select('_id content user_id created_at updated_at')
+            //     .lean()
 
             // Lượt thích của bài viết
             const likes = await PostLikesModel.find({ post_id: post._id }).select('_id user_id created_at');
 
-            // Danh mục của bài viết
-            const category = await PostCategoriesModel.findById(post.category_id).select('_id name description');
 
-            return {
+            return { 
                 ...post.toObject(),
                 images,
                 comments,
-                likes,
-                category
+                likes
             };
         }));
 
@@ -71,26 +89,32 @@ exports.getPostById = async (id) => {
             throw new Error("ID bài đăng không được cung cấp");
         }
         // Lấy bài đăng theo ID
-        const post = await CommunityPostsModel.findById(id);
+        const post = await CommunityPostsModel.findById(id)
+            .populate({
+                path: "user",
+                select: '_id name avatar_url',
+            })
+            .populate({
+                path: "category",
+                select: '_id name description',
+            })
+            .select('_id user_id category_id title content status created_at updated_at slug')
         if (!post) {
             throw new Error("Bài đăng không tồn tại");
         }
         const images = await PostImagesModel.find({ post_id: post._id }).select('_id image_url');
 
         // Bình luận của bài viết
-        const comments = await CommunityCommentsModel.find({ post_id: post._id }).select('_id content user_id created_at');
+        const comments = await commentService.getCommentsByPostId(post._id);
 
         // Lượt thích của bài viết
         const likes = await PostLikesModel.find({ post_id: post._id }).select('_id user_id created_at');
 
-        // Danh mục của bài viết
-        const category = await PostCategoriesModel.findById(post.category_id).select('_id name description');
         postWithDetails = {
             ...post.toObject(),
             images,
             comments,
-            likes,
-            category
+            likes
         };
         return postWithDetails;
     } catch (error) {

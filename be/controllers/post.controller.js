@@ -8,6 +8,7 @@ const { uploadImageMemory } = require("../middleware/cloudinary.middleware");
 router.post("/create", verifyToken, uploadImageMemory , async (req, res) => {
     try {
         const postData = req.body;
+        postData.user_id = req.userData.user._id; // Lấy ID người dùng từ token
         const imageFiles = req.files || [];
         const newPost = await postService.createPost(postData, imageFiles);
         return res.status(201).json({
@@ -33,8 +34,8 @@ router.get("/list", async (req, res) => {
         const posts = await postService.getAllPostsWithDetails();
         return res.status(200).json({
             error: 0,
-            error_text: "Lấy danh sách yêu cầu liên hệ thành công!",
-            data_name: "Danh sách yêu cầu liên hệ",
+            error_text: "Lấy danh sách bài đăng thành công!",
+            data_name: "Danh sách bài đăng",
             data: posts,
         });
     } catch (error) {
