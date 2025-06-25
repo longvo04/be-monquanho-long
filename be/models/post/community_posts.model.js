@@ -11,4 +11,20 @@ const CommunityPostsSchema = new mongoose.Schema({
     slug: { type: String, unique: true }, // Đường dẫn thân thiện với SEO
 });
 
+CommunityPostsSchema.virtual('user', {
+    ref: 'User',
+    localField: 'user_id',
+    foreignField: '_id',
+    justOne: true // Chỉ lấy một đối tượng User
+});
+
+CommunityPostsSchema.virtual('category', {
+    ref: 'PostCategories',
+    localField: 'category_id',
+    foreignField: '_id',
+});
+
+CommunityPostsSchema.set('toObject', { virtuals: true });
+CommunityPostsSchema.set('toJSON', { virtuals: true });
+
 module.exports = mongoose.model("CommunityPosts", CommunityPostsSchema);
