@@ -2,12 +2,13 @@ const express = require("express");
 const router = express.Router();
 const postService = require("../services/post.service");
 const verifyToken = require("../middleware/VerifyToken.middleware");
-const { uploadImageMemory } = require("../middleware/multer.middleware");
+const { uploadImageMemory } = require("../middleware/cloudinary.middleware");
 
 // Tạo bài đăng mới
 router.post("/create", verifyToken, uploadImageMemory , async (req, res) => {
     try {
         const postData = req.body;
+        postData.user_id = req.userData.user._id; // Lấy ID người dùng từ token
         const imageFiles = req.files || [];
         const newPost = await postService.createPost(postData, imageFiles);
         return res.status(201).json({
@@ -33,8 +34,8 @@ router.get("/list", async (req, res) => {
         const posts = await postService.getAllPostsWithDetails();
         return res.status(200).json({
             error: 0,
-            error_text: "Lấy danh sách yêu cầu liên hệ thành công!",
-            data_name: "Danh sách yêu cầu liên hệ",
+            error_text: "Lấy danh sách bài đăng thành công!",
+            data_name: "Danh sách bài đăng",
             data: posts,
         });
     } catch (error) {
@@ -124,6 +125,28 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
         });
     } catch (error) {
         console.error("Lỗi khi xóa bài đăng:", error.message);
+        return res.status(500).json({
+            error: 500,
+            error_text: "Lỗi server!",
+            data_name: "Bài đăng",
+            data: [],
+        });
+    }
+});
+
+router.post("/like/:id", verifyToken, async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.userData.user._id; // Lấy ID người dùng từ token
+        const likedPost = await postService.likePost(postId, userId);
+        return res.status(200).json({
+            error: 0,
+            error_text: "Đã thích bài đăng thành công!",
+            data_name: "Bài đăng",
+            data: [likedPost],
+        });
+    } catch (error) {
+        console.error("Lỗi khi thích bài đăng:", error.message);
         return res.status(500).json({
             error: 500,
             error_text: "Lỗi server!",
