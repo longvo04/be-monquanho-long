@@ -11,6 +11,19 @@ const CommunityPostsSchema = new mongoose.Schema({
     slug: { type: String, unique: true }, // Đường dẫn thân thiện với SEO
 });
 
+CommunityPostsSchema.virtual('images', {
+    ref: 'PostImages',
+    localField: '_id',
+    foreignField: 'post_id',
+});
+
+CommunityPostsSchema.virtual('likeCount', {
+    ref: 'PostLikes',
+    localField: '_id',
+    foreignField: 'post_id',
+    count: true // Đếm số lượng like
+});
+
 CommunityPostsSchema.virtual('user', {
     ref: 'User',
     localField: 'user_id',

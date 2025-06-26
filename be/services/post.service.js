@@ -43,36 +43,19 @@ exports.getAllPostsWithDetails = async () => {
                 path: "category",
                 select: '_id name description',
             })
+            .populate({
+                path: 'images',
+                select: '_id image_url',
+            })
+            .populate("likeCount")
             .select('_id user_id category_id title content status created_at updated_at slug')
             
-        // Lấy chi tiết cho từng bài viết
+        // Lấy comment cho từng bài viết
         const postsWithDetails = await Promise.all(posts.map(async (post) => {
-            // Ảnh của bài viết
-            const images = await PostImagesModel.find({ post_id: post._id }).select('_id image_url');
-
-            // Bình luận của bài viết
             const comments = await commentService.getCommentsByPostId(post._id);
-            // const comments = await CommunityCommentsModel.find({ post_id: post._id, parent_id: null })
-            //     .populate({
-            //         path: "childComment",
-            //         select: '_id content user_id created_at updated_at',
-            //         populate: {
-            //             path: "user",
-            //             select: '_id name avatar_url',
-            //         }
-            //     })
-            //     .select('_id content user_id created_at updated_at')
-            //     .lean()
-
-            // Lượt thích của bài viết
-            const likes = await PostLikesModel.find({ post_id: post._id }).select('_id user_id created_at');
-
-
             return { 
                 ...post.toObject(),
-                images,
-                comments,
-                likes
+                comments
             };
         }));
 
@@ -98,23 +81,22 @@ exports.getPostById = async (id) => {
                 path: "category",
                 select: '_id name description',
             })
+            .populate({
+                path: 'images',
+                select: '_id image_url',
+            })
+            .populate("likeCount")
             .select('_id user_id category_id title content status created_at updated_at slug')
         if (!post) {
             throw new Error("Bài đăng không tồn tại");
         }
-        const images = await PostImagesModel.find({ post_id: post._id }).select('_id image_url');
 
         // Bình luận của bài viết
-        const comments = await commentService.getCommentsByPostId(post._id);
-
-        // Lượt thích của bài viết
-        const likes = await PostLikesModel.find({ post_id: post._id }).select('_id user_id created_at');
-
+        const comments = await commentService.getCommentsByPostId(post._id)
+        
         postWithDetails = {
             ...post.toObject(),
-            images,
-            comments,
-            likes
+            comments
         };
         return postWithDetails;
     } catch (error) {
@@ -129,31 +111,31 @@ exports.getPostsByCategory = async (categoryId) => {
         if (!category) {
             throw new Error("Danh mục không tồn tại");
         }
-        const posts = await CommunityPostsModel.find({ category_id: categoryId });
+        const posts = await CommunityPostsModel.find({ category_id: categoryId })
+            .populate({
+                path: "user",
+                select: '_id name avatar_url',
+            })
+            .populate({
+                path: "category",
+                select: '_id name description',
+            })
+            .populate({
+                path: 'images',
+                select: '_id image_url',
+            })
+            .populate("likeCount")
+            .select('_id user_id category_id title content status created_at updated_at slug')
         if (!posts) {
             return []; // Trả về mảng rỗng nếu không có bài viết nào
         }
 
-        // Lấy chi tiết cho từng bài viết
+        // Lấy Bình luận của từng bài viết
         const postsWithDetails = await Promise.all(posts.map(async (post) => {
-            // Ảnh của bài viết
-            const images = await PostImagesModel.find({ post_id: post._id }).select('_id image_url');
-
-            // Bình luận của bài viết
-            const comments = await CommunityCommentsModel.find({ post_id: post._id }).select('_id content user_id created_at');
-
-            // Lượt thích của bài viết
-            const likes = await PostLikesModel.find({ post_id: post._id }).select('_id user_id created_at');
-
-            // Danh mục của bài viết
-            const category = await PostCategoriesModel.findById(post.category_id).select('_id name description');
-
+            const comments = await commentService.getCommentsByPostId(post._id)
             return {
                 ...post.toObject(),
-                images,
                 comments,
-                likes,
-                category
             };
         }));
 
@@ -194,11 +176,11 @@ exports.deleteAllPosts = async () => {
             await deleteImageFromCloudinary(image.image_url.split('/').pop().split('.')[0]);
         });
         await Promise.all(deletePromises);
-        // Xóa tất cả ảnh liên quan đến bài đăng
+        // Xóa tất cả ảnh
         await PostImagesModel.deleteMany({});
-        // Xóa tất cả bình luận liên quan đến bài đăng
+        // Xóa tất cả bình luận
         await CommunityCommentsModel.deleteMany({});
-        // Xóa tất cả lượt thích liên quan đến bài đăng
+        // Xóa tất cả lượt thích
         await PostLikesModel.deleteMany({});
         // Cuối cùng, xóa tất cả bài đăng
         return await CommunityPostsModel.deleteMany({});
@@ -253,3 +235,34 @@ exports.updatePost = async (id, updateData, imageFiles, removedImagesId) => {
         throw new Error("Lỗi khi cập nhật bài viết: " + error.message);
     }
 }
+
+// Like bài đăng
+exports.likePost = async (postId, userId) => {
+    try {
+        // Kiểm tra xem bài đăng có tồn tại không
+        const post = await CommunityPostsModel.findById(postId);
+        if (!post) {
+            throw new Error("Bài đăng không tồn tại");
+        }
+
+        // Kiểm tra xem người dùng đã like bài đăng chưa
+        const existingLike = await PostLikesModel.findOne({ post_id: postId, user_id: userId });
+        if (existingLike) {
+            // Nếu đã like, xóa lượt thích
+            await PostLikesModel.deleteOne({ _id: existingLike._id });
+            return { message: "Đã bỏ thích bài đăng" };
+        }
+
+        // Tạo mới lượt thích
+        const newLike = new PostLikesModel({
+            post_id: postId,
+            user_id: userId
+        });
+        await newLike.save();
+
+        return { message: "Đã thích bài đăng thành công" };
+    } catch (error) {
+        console.error("Lỗi khi like bài đăng:", error.message);
+        throw new Error("Lỗi khi like bài đăng: " + error.message);
+    }
+};

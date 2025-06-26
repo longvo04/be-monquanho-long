@@ -134,6 +134,28 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
     }
 });
 
+router.post("/like/:id", verifyToken, async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.userData.user._id; // Lấy ID người dùng từ token
+        const likedPost = await postService.likePost(postId, userId);
+        return res.status(200).json({
+            error: 0,
+            error_text: "Đã thích bài đăng thành công!",
+            data_name: "Bài đăng",
+            data: [likedPost],
+        });
+    } catch (error) {
+        console.error("Lỗi khi thích bài đăng:", error.message);
+        return res.status(500).json({
+            error: 500,
+            error_text: "Lỗi server!",
+            data_name: "Bài đăng",
+            data: [],
+        });
+    }
+});
+
 // Xóa tất cả các bài đăng (db cleaning for development only)
 router.post("/delete-all", async (req, res) => {
     try {
