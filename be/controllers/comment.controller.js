@@ -4,10 +4,19 @@ const commentService = require("../services/comment.service");
 const CommunityCommentsModel = require("../models/comment/community_comments.model");
 const verifyToken = require("../middleware/VerifyToken.middleware");
 const checkOwnership = require("../middleware/checkOwnership.middleware");
+const { validateId } = require("../utils/validate.util");
 
 // Lấy tất cả bình luận của bài viết
 router.get("/list/:postId", async (req, res) => {
     try {
+        if (!validateId(req.params.postId)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID bài viết không hợp lệ.",
+                data_name: "Bình luận",
+                data: [],
+            });
+        }
         const comments = await commentService.getCommentsByPostId(req.params.postId);
         return res.status(200).json({
             error: 0,
@@ -19,7 +28,7 @@ router.get("/list/:postId", async (req, res) => {
         console.error("Lỗi khi lấy bình luận:", error.message);
         return res.status(500).json({
             error: 500,
-            error_text: "Lỗi server!",
+            error_text: error.message,
             data_name: "Bình luận",
             data: [],
         });
@@ -30,6 +39,14 @@ router.get("/list/:postId", async (req, res) => {
 router.post("/like/:id", verifyToken, async (req, res) => {
     try {
         const commentId = req.params.id;
+        if (!validateId(commentId)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID bình luận không hợp lệ.",
+                data_name: "Thích bình luận",
+                data: [],
+            });
+        }
         const userId = req.userData.user._id; // Lấy ID người dùng từ token
         const result = await commentService.likeComment(commentId, userId);
         return res.status(200).json({
@@ -57,6 +74,14 @@ router.post("/add/:postId", verifyToken, async (req, res) => {
             user_id: req.userData.user._id, // Lấy ID người dùng từ token
             content: req.body.content,
         };
+        if (!validateId(commentData.post_id)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID bài viết không hợp lệ.",
+                data_name: "Bình luận",
+                data: [],
+            });
+        }
         const newComment = await commentService.addComment(commentData);
         return res.status(201).json({
             error: 0,
@@ -84,6 +109,14 @@ router.post("/add/:postId/:id", verifyToken, async (req, res) => {
             content: req.body.content,
             parent_id: req.params.id,
         };
+        if (!validateId(commentData.post_id) || !validateId(commentData.parent_id)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID bài viết hoặc ID bình luận không hợp lệ.",
+                data_name: "Bình luận",
+                data: [],
+            });
+        }
         const newComment = await commentService.addComment(commentData);
         return res.status(201).json({
             error: 0,
@@ -131,6 +164,14 @@ router.put("/update/:id", verifyToken, checkOwnership({
 // Xóa bình luận
 router.delete("/delete/:id", verifyToken, checkOwnership({ model: CommunityCommentsModel }), async (req, res) => {
     try {
+        if (!validateId(req.params.id)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID bình luận không hợp lệ.",
+                data_name: "Bình luận",
+                data: [],
+            });
+        }
         await commentService.deleteComment(req.params.id);
         return res.status(200).json({
             error: 0,

@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
 const CommentLikesSchema = new mongoose.Schema({
-    comment_id: { type: mongoose.Schema.Types.ObjectId, ref: "community_comments", required: true }, // Comment mà like thuộc về
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true }, // Ai gửi like
+    comment_id: { type: mongoose.Schema.Types.ObjectId, ref: "CommunityComments", required: true }, // Comment mà like thuộc về
+    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Ai gửi like
     created_at: { type: Date, default: Date.now }, // Thời điểm gửi bình luận
 });
 

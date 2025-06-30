@@ -17,7 +17,7 @@ router.post("/create", async (req, res) => {
         console.error("Lỗi tạo yêu cầu liên hệ:", error.message);
         return res.status(500).json({
             error: 500,
-            error_text: "Lỗi server!",
+            error_text: error.message,
             data_name: "Yêu cầu liên hệ",
             data: [],
         });
@@ -38,7 +38,7 @@ router.get("/list", async (req, res) => {
         console.error("Lỗi lấy danh sách yêu cầu liên hệ:", error.message);
         return res.status(500).json({
             error: 500,
-            error_text: "Lỗi server!",
+            error_text: error.message,
             data_name: "Danh sách yêu cầu liên hệ",
             data: [],
         });
@@ -69,7 +69,7 @@ router.put("/update/:id", async (req, res) => {
         console.error("Lỗi cập nhật yêu cầu liên hệ:", error.message);
         return res.status(500).json({
             error: 500,
-            error_text: "Lỗi server!",
+            error_text: error.message,
             data_name: "Yêu cầu liên hệ",
             data: [],
         });
@@ -99,7 +99,7 @@ router.delete("/delete/:id", async (req, res) => {
         console.error("Lỗi xóa yêu cầu liên hệ:", error.message);
         return res.status(500).json({
             error: 500,
-            error_text: "Lỗi server!",
+            error_text: error.message,
             data_name: "Yêu cầu liên hệ",
             data: [],
         });

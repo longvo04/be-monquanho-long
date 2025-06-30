@@ -3,11 +3,20 @@ const router = express.Router();
 const categoryService = require("../services/post_category.service");
 const verifyToken = require("../middleware/VerifyToken.middleware");
 const checkRole = require("../middleware/checkRole.middleware");
+const { validateId, getRequiredKeys} = require("../utils/validate.util");
 
 // Tạo danh mục mới
 router.post("/create", verifyToken, checkRole("admin"), async (req, res) => {
     try {
         const categoryData = req.body;
+        if (!name) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "Thiếu thông tin cần thiết để tạo danh mục: name",
+                data_name: "Danh mục",
+                data: [],
+            });
+        }
         const newCategory = await categoryService.createNewCategory(categoryData);
         return res.status(201).json({
             error: 0,
@@ -19,7 +28,7 @@ router.post("/create", verifyToken, checkRole("admin"), async (req, res) => {
         console.error("Lỗi tạo danh mục:", error.message);
         return res.status(500).json({
             error: 500,
-            error_text: "Lỗi server!",
+            error_text: error.message,
             data_name: "Danh mục",
             data: [],
         });
@@ -46,15 +55,24 @@ router.get("/list", async (req, res) => {
 router.get("/:id", async (req, res) => {
     try {
         const categoryId = req.params.id;
-        const category = await categoryService.getCategory(categoryId);
-        if (!category) {
-            return res.status(404).json({
-                error: 404,
-                error_text: "Danh mục không tồn tại!",
+        if (!categoryId) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "Thiếu thông tin cần thiết để lấy danh mục: id",
                 data_name: "Danh mục",
                 data: [],
             });
         }
+        // validate id
+        if (!validateId(categoryId)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID danh mục không hợp lệ!",
+                data_name: "Danh mục",
+                data: [],
+            });
+        }
+        const category = await categoryService.getCategory(categoryId);
         return res.status(200).json({
             error: 0,
             error_text: "Lấy danh mục thành công!",
@@ -65,7 +83,7 @@ router.get("/:id", async (req, res) => {
         console.error("Lỗi khi lấy danh mục:", error.message);
         return res.status(500).json({
             error: 500,
-            error_text: "Lỗi server!",
+            error_text: error.message,
             data_name: "Danh mục",
             data: [],
         });
@@ -77,6 +95,22 @@ router.put("/update/:id", verifyToken, checkRole("admin"), async (req, res) => {
     try {
         const categoryId = req.params.id;
         const updateData = req.body;
+        if (!validateId(categoryId)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID danh mục không hợp lệ!",
+                data_name: "Danh mục",
+                data: [],
+            });
+        }
+        if (!categoryId || !updateData.name) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "Thiếu thông tin cần thiết để cập nhật danh mục:" + [!categoryId ? " id" : "", !updateData.name ? " name" : ""].filter(Boolean).join(", "),
+                data_name: "Danh mục",
+                data: [],
+            });
+        }
         const updatedCategory = await categoryService.updateCategory(categoryId, updateData);
         return res.status(200).json({
             error: 0,
@@ -88,7 +122,7 @@ router.put("/update/:id", verifyToken, checkRole("admin"), async (req, res) => {
         console.error("Lỗi cập nhật danh mục:", error.message);
         return res.status(500).json({
             error: 500,
-            error_text: "Lỗi server!",
+            error_text: error.message,
             data_name: "Danh mục",
             data: [],
         });
@@ -99,6 +133,14 @@ router.put("/update/:id", verifyToken, checkRole("admin"), async (req, res) => {
 router.delete("/delete/:id", verifyToken, checkRole("admin"), async (req, res) => {
     try {
         const categoryId = req.params.id;
+        if (!validateId(categoryId)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID danh mục không hợp lệ!",
+                data_name: "Danh mục",
+                data: [],
+            });
+        }
         const deletedCategory = await categoryService.deleteCategory(categoryId);
         return res.status(200).json({
             error: 0,
@@ -110,7 +152,7 @@ router.delete("/delete/:id", verifyToken, checkRole("admin"), async (req, res) =
         console.error("Lỗi xóa danh mục:", error.message);
         return res.status(500).json({
             error: 500,
-            error_text: "Lỗi server!",
+            error_text: error.message,
             data_name: "Danh mục",
             data: [],
         });
