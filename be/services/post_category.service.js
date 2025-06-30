@@ -35,11 +35,16 @@ exports.getCategory = async (id) => {
 
 exports.updateCategory = async (id, updateData) => {
     try {
-        return await PostCategoriesModel.findByIdAndUpdate(
+        const updatedCategory =  await PostCategoriesModel.findByIdAndUpdate(
             id,
             { $set: updateData },
             { new: true, runValidators: true }
         );
+
+        if (!updatedCategory) {
+            throw new Error("Danh mục không tồn tại");
+        }
+        return updatedCategory;
     } catch (error) {
         console.error("Lỗi khi cập nhật danh mục:", error.message);
         throw new Error("Lỗi khi cập nhật danh mục: " + error.message);
@@ -48,7 +53,11 @@ exports.updateCategory = async (id, updateData) => {
 
 exports.deleteCategory = async (id) => {
     try {
-        return await PostCategoriesModel.findByIdAndDelete(id);
+        const deletedCategory = await PostCategoriesModel.findByIdAndDelete(id);
+        if (!deletedCategory) {
+            throw new Error("Danh mục không tồn tại");
+        }
+        return deletedCategory;
     } catch (error) {
         console.error("Lỗi khi xóa danh mục:", error.message);
         throw new Error("Lỗi khi xóa danh mục: " + error.message);

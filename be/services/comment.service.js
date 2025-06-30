@@ -57,10 +57,14 @@ exports.getCommentsByPostId = async (postId) => {
             select: '_id content user_id created_at updated_at',
             populate: {
               path: "user",
-              select: '_id name avatar_url',
+              select: '_id name avatar_url'
             }
           })
           .populate("likeCount")
+          .populate({
+            path: "user",
+            select: '_id name avatar_url'
+          })
           .select('_id content user_id created_at updated_at')
           .lean()
         return comments || [];
@@ -79,8 +83,8 @@ exports.updateComment = async (id, updateData) => {
         }
         return updatedComment;
     } catch (error) {
-        console.error("Lỗi khi chỉnh sửa:", error.message);
-        throw new Error("Lỗi khi chỉnh sửa: " + error.message);
+        console.error("Lỗi khi chỉnh sửa bình luận:", error.message);
+        throw new Error("Lỗi khi chỉnh sửa bình luận: " + error.message);
     }
 };
 
