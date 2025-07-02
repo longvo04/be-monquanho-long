@@ -162,7 +162,6 @@ exports.sendOtp = async (phone) => {
         if (result.status === 'pending') {
             return { success: true, message: "OTP đã được gửi thành công" };
         }
-        console.log("Kết quả gửi OTP:", result);
     } catch (error) {
         console.error("Lỗi gửi OTP:", error.message);
         throw new Error("Lỗi gửi OTP: " + error.message);
