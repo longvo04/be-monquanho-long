@@ -10,6 +10,13 @@ const CommunityCommentsSchema = new mongoose.Schema({
     updated_at: { type: Date, default: Date.now }, // Cập nhật bình luận
 });
 
+CommunityCommentsSchema.virtual('childCount', {
+    ref: 'CommunityComments', // Tên mô hình bình luận
+    localField: '_id', // Trường trong CommunityCommentsSchema
+    foreignField: 'parent_id', // Trường trong CommunityCommentsSchema để liên kết với bình luận cha
+    count: true // Chỉ lấy số lượng bình luận con
+});
+
 CommunityCommentsSchema.virtual('likeCount', {
     ref: 'CommentLikes', // Tên mô hình thích bình luận
     localField: '_id', // Trường trong CommunityCommentsSchema

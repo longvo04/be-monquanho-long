@@ -14,7 +14,7 @@ const UserSchema = new mongoose.Schema({
     last_login: { type: Date, default: null }, // Lần đăng nhập gần nhất (có thể null)
     created_at: { type: Date, default: Date.now }, // Thời điểm tạo
     updated_at: { type: Date, default: Date.now }, // Thời điểm cập nhật thông tin
-    phone: { type: String, default: null } // Số điện thoại (có thể null)
+    phone: { type: String, default: null, unique: true } // Số điện thoại (có thể null)
 });
 
 UserSchema.plugin(uniqueValidator, { message: "{PATH} đã tồn tại." });

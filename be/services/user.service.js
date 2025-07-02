@@ -7,6 +7,7 @@ const { OAuth2Client } = require("google-auth-library");
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const jwtExpirySeconds = 3600;
+const { sendVerificationCode, checkVerificationCode } = require('../providers/TwilioVerifySMS');
 
 // Tạo người dùng mới
 exports.createUser = async (userData) => {
@@ -146,6 +147,69 @@ exports.loginUser = async (credentials, requestInfo) => {
         throw error;
     }
 };
+
+// Gửi OTP về số điện thoại
+exports.sendOtp = async (phone) => {
+    try {
+        if (!phone) {
+            throw new Error("Số điện thoại không được để trống");
+        }
+
+        if (!await User.exists({ phone })) {
+            return { success: false, message: "Số điện thoại chưa được đăng ký" };
+        }
+        const result = await sendVerificationCode(phone);
+        if (result.status === 'pending') {
+            return { success: true, message: "OTP đã được gửi thành công" };
+        }
+        console.log("Kết quả gửi OTP:", result);
+    } catch (error) {
+        console.error("Lỗi gửi OTP:", error.message);
+        throw new Error("Lỗi gửi OTP: " + error.message);
+    }
+}
+
+// Xác thực OTP
+exports.confirmOtp = async (phone, code, requestInfo) => {
+    try {
+        if (!phone || !code) {
+            throw new Error("Số điện thoại và mã OTP không được để trống");
+        }
+        const result = await checkVerificationCode(phone, code);
+        if (result.status !== 'approved') {
+            throw new Error("Mã OTP không hợp lệ hoặc đã hết hạn");
+            
+        }
+        const user = await User.findOne({ phone });
+        if (!user) {
+            throw new Error("User không tồn tại");
+        }
+
+        if (!user.verified) {
+            throw new Error("Tài khoản chưa xác thực");
+        }
+
+        if (user.is_banned) {
+            throw new Error("Tài khoản đã bị khóa");
+        }
+
+        const token = await this.generateAndSaveToken(user, requestInfo);
+
+        return {
+            success: true,
+            userData:{
+                _id: user._id,
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                token
+            }
+        };
+    } catch (error) {
+        console.error("Lỗi xác thực OTP:", error.message);
+        throw new Error("Lỗi xác thực OTP: " + error.message);
+    }
+}
 
 // Đăng nhập với Google
 exports.loginWithGoogle = async (idToken, requestInfo) => {

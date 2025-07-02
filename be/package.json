@@ -26,7 +26,9 @@
     "mongoose-unique-validator": "^4.0.1",
     "multer": "^2.0.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "nodemailer": "^7.0.3"
+    "nodemailer": "^7.0.3",
+    "passport-apple": "^2.0.2",
+    "twilio": "^5.7.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
