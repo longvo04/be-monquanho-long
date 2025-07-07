@@ -148,37 +148,9 @@ exports.loginUser = async (credentials, requestInfo) => {
     }
 };
 
-// Gửi OTP về số điện thoại
-exports.sendOtp = async (phone) => {
+// Đăng nhập bằng số điện thoại
+exports.loginWithPhone = async (phone, requestInfo) => {
     try {
-        if (!phone) {
-            throw new Error("Số điện thoại không được để trống");
-        }
-
-        if (!await User.exists({ phone })) {
-            return { success: false, message: "Số điện thoại chưa được đăng ký" };
-        }
-        const result = await sendVerificationCode(phone);
-        if (result.status === 'pending') {
-            return { success: true, message: "OTP đã được gửi thành công" };
-        }
-    } catch (error) {
-        console.error("Lỗi gửi OTP:", error.message);
-        throw new Error("Lỗi gửi OTP: " + error.message);
-    }
-}
-
-// Xác thực OTP
-exports.confirmOtp = async (phone, code, requestInfo) => {
-    try {
-        if (!phone || !code) {
-            throw new Error("Số điện thoại và mã OTP không được để trống");
-        }
-        const result = await checkVerificationCode(phone, code);
-        if (result.status !== 'approved') {
-            throw new Error("Mã OTP không hợp lệ hoặc đã hết hạn");
-            
-        }
         const user = await User.findOne({ phone });
         if (!user) {
             throw new Error("User không tồn tại");
@@ -195,18 +167,105 @@ exports.confirmOtp = async (phone, code, requestInfo) => {
         const token = await this.generateAndSaveToken(user, requestInfo);
 
         return {
-            success: true,
-            userData:{
-                _id: user._id,
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                token
-            }
+            _id: user._id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            token
         };
+    } catch (error) {
+        console.error("Lỗi khi đăng nhập bằng số điện thoại:", error.message);
+        throw new Error("Lỗi khi đăng nhập bằng số điện thoại: " + error.message);
+    }
+}
+
+
+// Gửi OTP về số điện thoại
+exports.sendOtp = async (phone, action) => {
+    try {
+        if (!phone) {
+            throw new Error("Số điện thoại không được để trống");
+        }
+        const user = await User.find({ phone });
+
+        // Nếu action là 'login' và người dùng không tồn tại, trả về thông báo lỗi
+        if (action === 'login' && !user) {
+            return { success: false, message: "Số điện thoại chưa được đăng ký" };
+        }
+        // Nếu action là 'register' và người dùng đã tồn tại, trả về thông báo lỗi
+        if (action === 'register' && user) {
+            return { success: false, message: "Số điện thoại đã được đăng ký" };
+        }
+        const result = await sendVerificationCode(phone);
+        if (result.status === 'pending') {
+            return { success: true, message: "OTP đã được gửi thành công" };
+        }
+    } catch (error) {
+        console.error("Lỗi gửi OTP:", error.message);
+        throw new Error("Lỗi gửi OTP: " + error.message);
+    }
+}
+
+// Xác thực OTP
+exports.confirmOtp = async (phone, code) => {
+    try {
+        if (!phone || !code) {
+            throw new Error("Số điện thoại và mã OTP không được để trống");
+        }
+        const result = await checkVerificationCode(phone, code);
+        if (result.status !== 'approved') {
+            throw new Error("Mã OTP không hợp lệ hoặc đã hết hạn");
+        }
+        return { success: true, message: "Xác thực OTP thành công" };
     } catch (error) {
         console.error("Lỗi xác thực OTP:", error.message);
         throw new Error("Lỗi xác thực OTP: " + error.message);
+    }
+}
+
+exports.loginWithFacebook = async (req, accessToken, refreshToken, profile, cb) => {
+    try {
+        const requestInfo = {
+            ip: req.ip,
+            userAgent: req.headers['user-agent'] || ''
+        };
+        if (!accessToken) {
+            throw new Error("Access token không hợp lệ");
+        }
+        
+        // Tìm kiếm user trong cơ sở dữ liệu
+        let user = await User.findOne({ provider: 'facebook', provider_id: profile?.id });
+        console.log("Tạofff người dùng mới từ Facebook profile:", profile);
+        if (!user) {
+            console.log("Tạo người dùng mới từ Facebook profile:", profile);
+            user = await User.create({
+                email: profile?._json?.email || 'defaultmail@gmail.com',
+                name: "test" || profile?._json?.name || "Người dùng Facebook",
+                phone: "",
+                avatar_url: profile?._json?.picture?.data?.url || '',
+                provider: 'facebook',
+                provider_id: profile?.id,
+                verified: true,
+                role: 'user'
+            });
+        }
+
+        if (user.is_banned) {
+            throw new Error("Tài khoản đã bị khóa");
+        }
+
+        const token = await this.generateAndSaveToken(user, requestInfo);
+
+        return cb(null, {
+            _id: user._id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            token
+        });
+    } catch (error) {
+        console.error("Lỗi đăng nhập Facebook - service:", error.message);
+        return cb(error);
     }
 }
 

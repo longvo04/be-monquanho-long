@@ -3,16 +3,38 @@ const router = express.Router();
 const verifyToken = require("../middleware/VerifyToken.middleware");
 const checkRole = require("../middleware/checkRole.middleware");
 const { checkMultiRole } = require("../middleware/checkRole.middleware");
+const passport = require("passport");
 const userService = require("../services/user.Service");
 const UserOtp = require("../models/auth/user_otp.model");
 const bcrypt = require("bcryptjs");
 const sendMail = require("../utils/sendMail"); // Utility for sending emails
+const phoneRegex = /^(\+84|0)(3[2-9]|5[6-9]|7[0-9]|8[1-9]|9[0-9])[0-9]{7}$/; // Số điện thoại Việt Nam
+const otpRegex = /^\d{6}$/; // OTP 6 chữ số
+// const phoneRegex = /^\+[1-9]\d{1,14}$/ // E.164 format for international phone numbers
+
 
 // Đăng ký bằng email/password
 router.post("/register", async (req, res) => {
     try {
-        const { phoneNumber } = req.body;
+        const { email, password, name, phone } = req.body;
+        // Validate input
+        if (!email || !password || !name) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "Thiếu thông tin đăng ký! Vui lòng cung cấp email, mật khẩu và tên người dùng.",
+                data_name: "Thông tin người dùng",
+                data: []
+            });
+        }
         // validate phone number
+        if (phone && !phoneRegex.test(phone)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "Số điện thoại không hợp lệ! Vui lòng nhập số điện thoại hợp lệ.",
+                data_name: "Thông tin người dùng",
+                data: []
+            });
+        }
         const userData = await userService.registerUser(req.body);
         return res.status(201).json({
             error: 0,
@@ -72,11 +94,10 @@ router.post("/login", async (req, res) => {
 // Đăng nhập bằng Phone Number (SMS)
 router.post("/send-otp", async (req, res) => {
     try {
-        const { phoneNumber } = req.body;
+        const { phone } = req.body;
+        action = req.body?.action || "login";
         // Validate phone number regex
-        const phoneRegex = /^(\+84|0)(3[2-9]|5[6-9]|7[0-9]|8[1-9]|9[0-9])[0-9]{7}$/; // Số điện thoại Việt Nam
-        // const phoneRegex = /^\+[1-9]\d{1,14}$/ // E.164 format for international phone numbers
-        if (!phoneNumber || !phoneRegex.test(phoneNumber)) {
+        if (!phone || !phoneRegex.test(phone)) {
             return res.status(400).json({
                 error: 400,
                 error_text: "Số điện thoại không hợp lệ!",
@@ -84,7 +105,7 @@ router.post("/send-otp", async (req, res) => {
                 data: []
             });
         }
-        const {success, message} = await userService.sendOtp(phoneNumber);
+        const {success, message} = await userService.sendOtp(phone, action);
         if (!success) {
             return res.status(400).json({
                 error: 400,
@@ -111,13 +132,11 @@ router.post("/send-otp", async (req, res) => {
 });
 
 // Xác nhận OTP và đăng nhập
-router.post("/confirm-otp", async (req, res) => {
+router.post("/login-with-otp", async (req, res) => {
     try {
-        const { phoneNumber, otp } = req.body;
-        const phoneRegex = /^(\+84|0)(3[2-9]|5[6-9]|7[0-9]|8[1-9]|9[0-9])[0-9]{7}$/; // Số điện thoại Việt Nam
-        const otpRegex = /^\d{6}$/; // OTP 6 chữ số
+        const { phone, otp } = req.body;
         // verify phone number and otp
-        if (!phoneNumber || !phoneRegex.test(phoneNumber) || !otp || !otpRegex.test(otp)) {
+        if (!phone || !phoneRegex.test(phone) || !otp || !otpRegex.test(otp)) {
             return res.status(400).json({
                 error: 400,
                 error_text: "Số điện thoại hoặc OTP không hợp lệ!",
@@ -129,24 +148,43 @@ router.post("/confirm-otp", async (req, res) => {
             ip: req.ip,
             userAgent: req.headers['user-agent'] || ''
         };
-        const userData = await userService.confirmOtp(phoneNumber, otp, requestInfo);
+        await userService.confirmOtp(phone, otp);
+        const userData = await userService.loginWithPhone(phone, requestInfo);
         return res.json({
             error: 0,
-            error_text: "Đăng nhập thành công qua OTP!",
+            error_text: "Đăng nhập thành công bằng số điện thoại!",
             data_name: "Thông tin người dùng",
             data: [userData]
         });
     } catch (err) {
         console.error("Lỗi xác nhận OTP:", err.message);
-        let statusCode = 500;
-        if (err.message.includes("OTP không hợp lệ") || err.message.includes("Số điện thoại không tồn tại")) {
-            statusCode = 400;
-        } else if (err.message.includes("Tài khoản đã bị khóa")) {
-            statusCode = 403;
-        }
-        return res.status(statusCode).json({
-            error: statusCode,
-            error_text: err.message || "Lỗi server!",
+        return res.status(401).json({
+            error: 401,
+            error_text: err.message || "Lỗi xác nhận OTP!",
+            data_name: "Thông tin người dùng",
+            data: []
+        });
+    }
+});
+
+// Đăng nhập bằng Facebook
+router.get("/facebook-login", passport.authenticate("facebook", { session: false, scope: ["email", "public_profile"] }));
+
+// Callback sau khi Facebook xác thực
+router.get("/redirect/facebook", passport.authenticate("facebook", { session:false, failureRedirect: '/login', failureMessage: true }), (req, res) => {
+    try {
+        console.log("Đăng nhập Facebook thành công:", req.user);
+        return res.json({
+            error: 0,
+            error_text: "Đăng nhập Facebook thành công!",
+            data_name: "Thông tin người dùng",
+            data: [req.user]
+        });
+    } catch (err) {
+        console.error("Lỗi redirect Facebook:", err.message);
+        return res.status(401).json({
+            error: 401,
+            error_text: "Token Facebook không hợp lệ!",
             data_name: "Thông tin người dùng",
             data: []
         });
