@@ -96,6 +96,36 @@ router.get("/:id", verifyToken, checkAdmin, async (req, res) => {
     }
 });
 
+// Lấy các các báo cáo liên quan
+router.get("/related/:targetId", verifyToken, checkAdmin, async (req, res) => {
+    try {
+        const targetId = req.params.targetId;
+        if (!validateId(targetId)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID mục tiêu không hợp lệ.",
+                data_name: "Báo cáo",
+                data: [],
+            });
+        }
+        const relatedReports = await reportService.getRelatedReports(targetId);
+        return res.status(200).json({
+            error: 0,
+            error_text: "Lấy báo cáo liên quan thành công!",
+            data_name: "Báo cáo",
+            data: relatedReports,
+        });
+    } catch (error) {
+        console.error("Lỗi lấy báo cáo liên quan:", error.message);
+        return res.status(500).json({
+            error: 500,
+            error_text: error.message,
+            data_name: "Báo cáo",
+            data: [],
+        });
+    }
+});
+
 // Cập nhật trạng thái báo cáo
 router.put("/update/:id", verifyToken, checkAdmin, async (req, res) => {
     try {
@@ -126,6 +156,37 @@ router.put("/update/:id", verifyToken, checkAdmin, async (req, res) => {
         });
     } catch (error) {
         console.error("Lỗi cập nhật báo cáo:", error.message);
+        return res.status(500).json({
+            error: 500,
+            error_text: error.message,
+            data_name: "Báo cáo",
+            data: [],
+        });
+    }
+});
+
+// Xóa bài viết/bình luận vi phạm
+router.post("/:reportId/resolve", verifyToken, checkAdmin, async (req, res) => {
+    try {
+        const reportId = req.params.reportId;
+        const { action } = req.body || 'delete' ; // action có thể là 'delete' hoặc 'ignore'
+        if (!validateId(reportId)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID báo cáo không hợp lệ.",
+                data_name: "Báo cáo",
+                data: [],
+            });
+        }
+        const resolvedResult = await reportService.resolveReport(reportId, action);
+        return res.status(200).json({
+            error: 0,
+            error_text: "Nội dung đã bị xóa thành công!",
+            data_name: "Báo cáo",
+            data: [resolvedResult],
+        });
+    } catch (error) {
+        console.error("Lỗi xóa nội dung vi phạm:", error.message);
         return res.status(500).json({
             error: 500,
             error_text: error.message,

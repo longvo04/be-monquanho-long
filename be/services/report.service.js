@@ -48,6 +48,9 @@ exports.getReportById = async (reportId) => {
         const postReport = await PostReport.findById(reportId)
             .populate("user_id", "_id name avatar_url")
             .populate("target_id", "_id content created_at");
+        if (!postReport) {
+            throw new Error("Báo cáo không tồn tại");
+        }
         if (postReport) return postReport;
 
         const commentReport = await CommentReport.findById(reportId)
@@ -59,6 +62,22 @@ exports.getReportById = async (reportId) => {
     } catch (error) {
         console.error("Lỗi khi lấy báo cáo:", error.message);
         throw new Error("Lỗi khi lấy báo cáo: " + error.message);
+    }
+}
+
+exports.getRelatedReports = async (targetId) => {
+    try {
+        const postReports = await PostReport.find({ target_id: targetId })
+            .populate("user_id", "_id name avatar_url")
+            .populate("target_id", "_id content created_at");
+
+        const commentReports = await CommentReport.find({ target_id: targetId })
+            .populate("user_id", "_id name avatar_url")
+            .populate("target_id", "_id post_id content created_at");
+        return [...postReports, ...commentReports];
+    } catch (error) {
+        console.error("Lỗi khi lấy báo cáo liên quan:", error.message);
+        throw new Error("Lỗi khi lấy báo cáo liên quan: " + error.message);
     }
 }
 
@@ -117,9 +136,26 @@ exports.updateStatus = async (reportId, status, note) => {
 // Submit xử lý báo cáo
 exports.resolveReport = async (reportId, action) => {
   try {
+    const report = await PostReport.findById(reportId) || await CommentReport.findById(reportId);
+    if (!report) {
+        throw new Error("Báo cáo không tồn tại");
+    }
 
+    if (action === 'delete') {
+        const reportedContent = await CommunityPostsModel.findById(report.target_id) || await CommunityCommentsModel.findById(report.target_id);
+        if (!reportedContent) {
+            throw new Error("Nội dung không tồn tại");
+        }
+        reportedContent.status = 'deleted';
+        report.status = 'resolved';
+        await reportedContent.save();
+        return await report.save();
+    } else {
+        throw new Error("Hành động không hợp lệ");
+    }
   } catch (error) {
-    console.error("Lỗi khi xử lý báo cáo:", error.message);
-    throw new Error("Lỗi khi xử lý báo cáo: " + error.message);
+        console.error("Lỗi khi xử lý báo cáo:", error.message);
+        throw new Error("Lỗi khi xử lý báo cáo: " + error.message);
   }
 }
+

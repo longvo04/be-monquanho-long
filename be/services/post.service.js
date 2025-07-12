@@ -33,7 +33,7 @@ exports.createPost = async (postData, imageFiles) => {
 exports.getAllPostsWithDetails = async () => {
     try {
         // Lấy tất cả bài viết
-        const posts = await CommunityPostsModel.find()
+        const posts = await CommunityPostsModel.find({ status: 'active' })
             .populate({
                 path: "user",
                 select: '_id name avatar_url',
@@ -68,7 +68,7 @@ exports.getAllPostsWithDetails = async () => {
 exports.getPostById = async (id) => {
     try {
         // Lấy bài đăng theo ID
-        const post = await CommunityPostsModel.findById(id)
+        const post = await CommunityPostsModel.findOne({_id: id, status: 'active'})
             .populate({
                 path: "user",
                 select: '_id name avatar_url',
@@ -103,7 +103,7 @@ exports.getPostById = async (id) => {
 
 exports.getPostsByCategory = async (categoryId) => {
     try {
-        const category = await PostCategoriesModel.findById(categoryId).select('_id name description');
+        const category = await PostCategoriesModel.findOne({ categoryId: categoryId, status: 'active' }).select('_id name description');
         if (!category) {
             throw new Error("Danh mục không tồn tại");
         }
@@ -269,32 +269,36 @@ exports.likePost = async (postId, userId) => {
 
 exports.getTopLikedPosts = async (limit = 10) => {
     try {
-      const topPosts = await PostLikesModel.aggregate([
-        {
-          $group: {
-            _id: "$post_id",
-            likesCount: { $sum: 1 }, 
-          },
-        },
-        {
-          $lookup: {
-            from: "communityposts",
-            localField: "_id", 
-            foreignField: "_id",
-            as: "post", 
-          },
-        },
-        { $unwind: "$post" }, 
-        {
-          $project: {
-            likesCount: 1,
-            content: "$post.content",
-            created_at: "$post.created_at",
-          },
-        },
-        { $sort: { likesCount: -1 } }, 
-        { $limit: limit }, 
-      ]);
+        const topPosts = await CommunityPostsModel.aggregate([
+            { $match: { status: 'active' } }, // Lọc bài đăng đang hoạt động
+            {
+                $lookup: {
+                    from: "postlikes", // Tên của collection PostLikesModel
+                    localField: "_id", // Trường trong CommunityPostsModel
+                    foreignField: "post_id", // Trường trong PostLikesModel
+                    as: "likes" // Tên trường mới chứa danh sách lượt thích
+                }
+            },
+            {
+                $addFields: {
+                    likesCount: { $size: "$likes" } // Thêm trường đếm số lượt thích
+                }
+            },
+            { $sort: { likesCount: -1 } }, // Sắp xếp theo số lượt thích giảm dần
+            { $limit: limit }, // Giới hạn số lượng bài đăng trả về
+            {
+                $project: {
+                    _id: 1,
+                    user_id: 1,
+                    category_id: 1,
+                    content: 1,
+                    status: 1,
+                    created_at: 1,
+                    updated_at: 1,
+                    likesCount: 1 // Chỉ trả về các trường cần thiết
+                }
+            }
+        ]);
       return topPosts;
     } catch (error) {
       console.error("Có lỗi xảy ra khi lấy bài đăng top:", error);

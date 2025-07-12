@@ -62,9 +62,9 @@ router.get("/list", async (req, res) => {
 });
 
 // Lấy danh sách bài đăng nhiều like
-router.get("/top-liked/:limit", async (req, res) => {
+router.get("/top-liked/list", async (req, res) => {
     try {
-        const limit = parseInt(req.params.limit, 10) || 10; // Mặc định lấy 10 bài đăng
+        const limit = parseInt(req.body?.limit, 10) || 10; // Mặc định lấy 10 bài đăng
         const topLikedPosts = await postService.getTopLikedPosts(limit);
         return res.status(200).json({
             error: 0,

@@ -32,10 +32,6 @@ exports.likeComment = async (commentId, userId) => {
 exports.addComment = async (commentData) => {
     try {
       const parentComment = commentData.parent_id ? await CommunityCommentsModel.findById(commentData.parent_id) : null;
-      // Chuyển bình luận con về cùng cấp với cha nếu cha không phải bình luận gốc
-      if (parentComment && parentComment.parent_id) {
-        commentData.parent_id = parentComment.parent_id; 
-      }
       // Kiểm tra xem bài viết có tồn tại không
       if (!await CommunityPostsModel.exists({ _id: commentData.post_id })) {
         throw new Error("Bài viết không tồn tại");
@@ -51,21 +47,14 @@ exports.addComment = async (commentData) => {
 // Lấy tất cả bình luận của bài viết
 exports.getCommentsByPostId = async (postId) => {
     try {
-        const comments = await CommunityCommentsModel.find({ post_id: postId, parent_id: null })
-          .populate({
-            path: "childComment",
-            select: '_id content user_id created_at updated_at',
-            populate: {
-              path: "user",
-              select: '_id name avatar_url'
-            }
-          })
+        const comments = await CommunityCommentsModel.find({ post_id: postId, parent_id: null, status: 'active' })
+          .populate('childCount')
           .populate("likeCount")
           .populate({
             path: "user",
             select: '_id name avatar_url'
           })
-          .select('_id content user_id created_at updated_at')
+          .select('_id post_id content user_id created_at updated_at')
           .lean()
         return comments || [];
     } catch (error) {
@@ -73,6 +62,35 @@ exports.getCommentsByPostId = async (postId) => {
         throw new Error("Lỗi khi lấy bình luận: " + error.message);
     }
 };
+
+// Lấy bình luận và các bình luận con theo ID
+exports.getCommentById = async (id) => {
+  try {
+    const comment = await CommunityCommentsModel.find({ _id: id, status: 'active' })
+    .select('_id post_id content user_id created_at updated_at')
+    .populate({
+      path: "user",
+      select: '_id name avatar_url'
+    })
+    .populate("likeCount")
+    .populate('childCount')
+    .populate({
+      path: "childComment",
+      select: '_id content user_id created_at updated_at',
+      populate: {
+        path: "user childCount",
+        select: '_id name avatar_url'
+      }
+    })
+    .lean();
+    if (!comment) {
+      throw new Error("Bình luận không tồn tại");
+    }
+    return comment;
+  } catch (error) {
+    console.error("Lỗi khi lấy bình luận:", error.message);
+    throw new Error("Lỗi khi lấy bình luận: " + error.message);
+}};
 
 // Chỉnh sửa bình luận
 exports.updateComment = async (id, updateData) => {
@@ -88,18 +106,35 @@ exports.updateComment = async (id, updateData) => {
     }
 };
 
+const deleteChildComments = async (parentId) => {
+    try {
+        // Lấy tất cả bình luận con của bình luận gốc
+        const childComments = await CommunityCommentsModel.find({ parent_id: parentId });
+        // Nếu không có bình luận con, trả về
+        if (childComments.length === 0) return;
+
+        // Xóa từng bình luận con
+        for (const comment of childComments) {
+            await this.deleteComment(comment._id); // Gọi đệ quy để xóa tất cả bình luận con
+        }
+    } catch (error) {
+        console.error("Lỗi khi xóa bình luận con:", error.message);
+        throw new Error("Lỗi khi xóa bình luận con: " + error.message);
+    }
+}
+
 // Xóa bình luận
 exports.deleteComment = async (id) => {
     try {
         // Query tất cả bình luận con refer đến bình luận gốc
-        const childComment = await CommunityCommentsModel.find({ parent_id: id });
-        // Xóa tất cả lượt thích của các bình luận con
-        if (childComment) await Comment_likesModel.deleteMany({ comment_id: { $in: childComment.map(comment => comment._id) } });
-        // Xóa tất cả bình luận con
-        await CommunityCommentsModel.deleteMany({ parent_id: id });
-        // Xóa tất cả lượt thích của bình luận gốc
+        const comment = await CommunityCommentsModel.findById(id);
+        if (!comment) {
+            throw new Error("Bình luận không tồn tại");
+        }
+        await deleteChildComments(id); // Xóa tất cả bình luận con liên quan đến bình luận gốc
+        // Xóa tất cả lượt thích
         await Comment_likesModel.deleteMany({ comment_id: id });
-        // Cuối cùng xóa bình luận gốc
+        // Cuối cùng xóa bình luận
         return await CommunityCommentsModel.findByIdAndDelete(id);
     } catch (error) {
         console.error("Lỗi khi xóa bình luận:", error.message);
