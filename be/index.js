@@ -6,7 +6,6 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const passport = require("passport");
 
-
 // Khởi tạo ứng dụng Express
 const app = express();
 
@@ -43,7 +42,6 @@ app.use((err, req, res, next) => {
   }
   next(err);
 });
-
 
 // Kết nối MongoDB và khởi động server
 mongoose
