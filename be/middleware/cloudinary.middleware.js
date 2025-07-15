@@ -25,7 +25,7 @@ const storageCloudinaryFile = new CloudinaryStorage({
         folder: 'documents',
         format: file.originalname.split('.').pop(),
         public_id: Date.now() + '-' + file.originalname,
-        resource_type: 'auto', // ⚡ Để Cloudinary tự nhận diện file
+        resource_type: 'auto', // Để Cloudinary tự nhận diện file
     }),
 });
 
@@ -105,7 +105,6 @@ const uploadImageMemory = multer({
 
 // Khởi tạo Multer với cấu hình Cloudinary
 const uploadImage = multer({ storage: storageCloudinary });
-
 const uploadFile = multer({ storage: storageCloudinaryFile });
 // Cấu hình Multer lưu file tạm vào thư mục "uploads/"
 const upload = multer({ dest: 'uploads/' });

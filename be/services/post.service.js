@@ -56,7 +56,7 @@ exports.getAllPostsWithDetails = async () => {
                 ...post.toObject(),
                 comments
             };
-        }));
+        }));    
 
         return postsWithDetails;
     } catch (error) {
