@@ -35,6 +35,36 @@ router.get("/list/:postId", async (req, res) => {
     }
 });
 
+// Lấy bình luận và các bình luận con theo ID
+router.get("/:id", async (req, res) => {
+    try {
+        const commentId = req.params.id;
+        if (!validateId(commentId)) {
+            return res.status(400).json({
+                error: 400,
+                error_text: "ID bình luận không hợp lệ.",
+                data_name: "Bình luận",
+                data: [],
+            });
+        }
+        const comment = await commentService.getCommentById(commentId);
+        return res.status(200).json({
+            error: 0,
+            error_text: "Lấy bình luận thành công!",
+            data_name: "Bình luận",
+            data: comment,
+        });
+    } catch (error) {
+        console.error(error.message);
+        return res.status(500).json({
+            error: 500,
+            error_text: error.message,
+            data_name: "Bình luận",
+            data: [],
+        });
+    }
+});
+
 // Thích hoặc bỏ thích bình luận
 router.post("/like/:id", verifyToken, async (req, res) => {
     try {

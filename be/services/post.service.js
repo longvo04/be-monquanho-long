@@ -4,36 +4,48 @@ const PostLikesModel = require('../models/post/post_likes.model');
 const PostCategoriesModel = require('../models/post/post_categories.model');
 const PostImagesModel = require('../models/post/post_images.model');
 const commentService = require('./comment.service');
-const { uploadImageToCloudinary, deleteImageFromCloudinary } = require('../middleware/cloudinary.middleware');
-const POSTS_IMAGES_PATH = 'posts' // Đường dẫn lưu ảnh bài đăng trên Cloudinary
+const { deleteImageFromCloudinary } = require('../middleware/cloudinary.middleware');
 
 // Tạo Post mới
-exports.createPost = async (postData, imageFiles) => {
+exports.createPost = async (postData) => {
     try {
 
         // Thêm ảnh vào dữ liệu bài đăng nếu có
-        const imageUrls = await uploadImageToCloudinary(imageFiles, POSTS_IMAGES_PATH);
         const communityPost = new CommunityPostsModel(postData);
         const savedPost = await communityPost.save();
         // Nếu có ảnh, lưu vào PostImagesModel refer đến post id hiện tại
-        if (imageUrls.length > 0) {
-            const postImages = imageUrls.map(url => ({
-                post_id: savedPost._id,
-                image_url: url
-            }));
-            await PostImagesModel.insertMany(postImages);
-        }
-        return {...savedPost.toObject(), images: imageUrls };
+        return {...savedPost.toObject()};
     } catch (error) {
         console.error("Lỗi khi tạo bài viết mới:", error.message);
         throw new Error("Lỗi khi tạo bài viết mới: " + error.message);
     }
 };
 
+exports.addImagesToPost = async (postId, imgUrls) => {
+    try {
+        // Kiểm tra xem bài đăng có tồn tại không
+        const post = await CommunityPostsModel.findById(postId);
+        if (!post) {
+            throw new Error("Bài đăng không tồn tại");
+        }
+        // Tạo ảnh mới từ các file đã upload
+        const postImages = imgUrls.map(url => ({
+            post_id: postId,
+            image_url: url
+        }));
+        // Lưu các ảnh vào PostImagesModel
+        const savedImages = await PostImagesModel.insertMany(postImages);
+        return savedImages;
+    } catch (error) {
+        console.error("Lỗi khi thêm ảnh vào bài viết:", error.message);
+        throw new Error("Lỗi khi thêm ảnh vào bài viết: " + error.message);
+    }
+};
+
 exports.getAllPostsWithDetails = async () => {
     try {
         // Lấy tất cả bài viết
-        const posts = await CommunityPostsModel.find()
+        const posts = await CommunityPostsModel.find({ status: 'active' })
             .populate({
                 path: "user",
                 select: '_id name avatar_url',
@@ -68,7 +80,7 @@ exports.getAllPostsWithDetails = async () => {
 exports.getPostById = async (id) => {
     try {
         // Lấy bài đăng theo ID
-        const post = await CommunityPostsModel.findById(id)
+        const post = await CommunityPostsModel.findOne({_id: id, status: 'active'})
             .populate({
                 path: "user",
                 select: '_id name avatar_url',
@@ -103,7 +115,7 @@ exports.getPostById = async (id) => {
 
 exports.getPostsByCategory = async (categoryId) => {
     try {
-        const category = await PostCategoriesModel.findById(categoryId).select('_id name description');
+        const category = await PostCategoriesModel.findOne({ categoryId: categoryId, status: 'active' }).select('_id name description');
         if (!category) {
             throw new Error("Danh mục không tồn tại");
         }
@@ -190,7 +202,7 @@ exports.deleteAllPosts = async () => {
     }
 }
 
-exports.updatePost = async (id, updateData, imageFiles, removedImagesId) => {
+exports.updatePost = async (id, updateData, imgUrls, removedImagesId) => {
     try {
         // Xóa ảnh khỏi cloundinary nếu có ảnh bị xóa
         if (removedImagesId && removedImagesId.length > 0) {
@@ -198,17 +210,15 @@ exports.updatePost = async (id, updateData, imageFiles, removedImagesId) => {
                 const image = await PostImagesModel.findById(imageId);
                 if (image) {
                     // Xóa ảnh khỏi Cloudinary
-                    deleteImageFromCloudinary(image.image_url.split('/').pop().split('.')[0]);
+                    const publicId = image.image_url.split('/').pop().split('.')[0].trim();
+                    deleteImageFromCloudinary(publicId);
                 }
             });
             await Promise.all(deletePromises);
+            // Xóa ảnh khỏi PostImagesModel
             await PostImagesModel.deleteMany({ _id: { $in: removedImagesId } });
         }
-        // Nếu có ảnh mới, tải lên Cloudinary
-        let imageUrls = [];
-        if (imageFiles && imageFiles.length > 0) {
-            imageUrls = await uploadImageToCloudinary(imageFiles, POSTS_IMAGES_PATH);
-        }
+        // Nếu thêm ảnh mới vào PostImagesModel
 
         const updatedPost = await CommunityPostsModel.findByIdAndUpdate(
             id,
@@ -221,15 +231,15 @@ exports.updatePost = async (id, updateData, imageFiles, removedImagesId) => {
         }
 
         // Nếu có ảnh mới, lưu vào PostImagesModel refer đến post id hiện tại
-        if (imageUrls.length > 0) {
-            const postImages = imageUrls.map(url => ({
+        if (imgUrls.length > 0) {
+            const postImages = imgUrls.map(url => ({
                 post_id: id,
                 image_url: url
             }));
             await PostImagesModel.insertMany(postImages);
         }
 
-        return { ...updatedPost.toObject(), images: imageUrls };
+        return { ...updatedPost.toObject(), images: imgUrls };
     } catch (error) {
         console.error("Lỗi khi cập nhật bài viết:", error.message);
         throw new Error("Lỗi khi cập nhật bài viết: " + error.message);
@@ -269,32 +279,36 @@ exports.likePost = async (postId, userId) => {
 
 exports.getTopLikedPosts = async (limit = 10) => {
     try {
-      const topPosts = await PostLikesModel.aggregate([
-        {
-          $group: {
-            _id: "$post_id",
-            likesCount: { $sum: 1 }, 
-          },
-        },
-        {
-          $lookup: {
-            from: "communityposts",
-            localField: "_id", 
-            foreignField: "_id",
-            as: "post", 
-          },
-        },
-        { $unwind: "$post" }, 
-        {
-          $project: {
-            likesCount: 1,
-            content: "$post.content",
-            created_at: "$post.created_at",
-          },
-        },
-        { $sort: { likesCount: -1 } }, 
-        { $limit: limit }, 
-      ]);
+        const topPosts = await CommunityPostsModel.aggregate([
+            { $match: { status: 'active' } }, // Lọc bài đăng đang hoạt động
+            {
+                $lookup: {
+                    from: "postlikes", // Tên của collection PostLikesModel
+                    localField: "_id", // Trường trong CommunityPostsModel
+                    foreignField: "post_id", // Trường trong PostLikesModel
+                    as: "likes" // Tên trường mới chứa danh sách lượt thích
+                }
+            },
+            {
+                $addFields: {
+                    likesCount: { $size: "$likes" } // Thêm trường đếm số lượt thích
+                }
+            },
+            { $sort: { likesCount: -1 } }, // Sắp xếp theo số lượt thích giảm dần
+            { $limit: limit }, // Giới hạn số lượng bài đăng trả về
+            {
+                $project: {
+                    _id: 1,
+                    user_id: 1,
+                    category_id: 1,
+                    content: 1,
+                    status: 1,
+                    created_at: 1,
+                    updated_at: 1,
+                    likesCount: 1 // Chỉ trả về các trường cần thiết
+                }
+            }
+        ]);
       return topPosts;
     } catch (error) {
       console.error("Có lỗi xảy ra khi lấy bài đăng top:", error);

@@ -9,7 +9,7 @@ const { validateId, getRequiredKeys} = require("../utils/validate.util");
 router.post("/create", verifyToken, checkRole("admin"), async (req, res) => {
     try {
         const categoryData = req.body;
-        if (!name) {
+        if (!categoryData.name) {
             return res.status(400).json({
                 error: 400,
                 error_text: "Thiếu thông tin cần thiết để tạo danh mục: name",

@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const passport = require("passport");
 
 // Khởi tạo ứng dụng Express
 const app = express();
@@ -11,14 +12,36 @@ const app = express();
 // Cấu hình môi trường
 dotenv.config();
 
+const FacebookStrategy = require("./providers/FacebookStrategy");
+passport.use(FacebookStrategy)
+
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
+// app.use(session({
+//   secret: 'motmonqua',
+//   resave: false,
+//   saveUninitialized: true,
+//   cookie: { secure: true }
+// }))
+// app.use(passport.authenticate('session'));
 
 // Cấu hình view engine
 app.set("view engine", "ejs");
 
 app.use("/api", require("./routes/index.routes"));
+app.use((err, req, res, next) => {
+  if (err && err.message) {
+    console.error("Passport error middleware:", err.message);
+    return res.status(401).json({
+      error: 401,
+      error_text: err.message,
+      data_name: "Thông tin người dùng",
+      data: []
+    });
+  }
+  next(err);
+});
 
 // Kết nối MongoDB và khởi động server
 mongoose
