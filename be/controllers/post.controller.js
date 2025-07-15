@@ -2,10 +2,10 @@ const express = require("express");
 const router = express.Router();
 const postService = require("../services/post.service");
 const verifyToken = require("../middleware/VerifyToken.middleware");
-const { uploadImageMemory } = require("../middleware/cloudinary.middleware");
+const { uploadImage } = require("../middleware/cloudinary.middleware");
 const { validateId } = require("../utils/validate.util");
 // Tạo bài đăng mới
-router.post("/create", verifyToken, uploadImageMemory , async (req, res) => {
+router.post("/create", verifyToken, uploadImage.array('images', 5) , async (req, res) => {
     try {
         const postData = req.body;
         const { content, category_id } = postData;
@@ -26,13 +26,22 @@ router.post("/create", verifyToken, uploadImageMemory , async (req, res) => {
             });
         }
         postData.user_id = req.userData.user._id; // Lấy ID người dùng từ token
-        const imageFiles = req.files || [];
-        const newPost = await postService.createPost(postData, imageFiles);
+        const newPost = await postService.createPost(postData);
+        if (!newPost) {
+            return res.status(500).json({
+                error: 500,
+                error_text: "Không thể tạo bài đăng, vui lòng thử lại sau.",
+                data_name: "Bài đăng",
+                data: [],
+            });
+        }
+        const imageUrls = req.files.map(file => file.path);
+        const post_images = await postService.addImagesToPost(newPost._id, imageUrls);
         return res.status(201).json({
             error: 0,
             error_text: "Bài đăng đã được tạo thành công!",
             data_name: "Bài đăng",
-            data: [newPost],
+            data: [newPost, post_images],
         });
     } catch (error) {
         console.error(error.message);
@@ -134,7 +143,7 @@ router.get("/filter/:categoryId", async (req, res) => {
 });
 
 // Cập nhật bài đăng
-router.put("/update/:id", verifyToken, uploadImageMemory, async (req, res) => {
+router.put("/update/:id", verifyToken, uploadImage.array('images', 5), async (req, res) => {
     try {
         const postId = req.params.id;
         if (!validateId(postId)) {
@@ -146,10 +155,10 @@ router.put("/update/:id", verifyToken, uploadImageMemory, async (req, res) => {
             });
         }
         const postData = req.body;
-        const imageFiles = req.files || [];
         const imagesToDelete = Array.isArray(req.body.imagesToDelete) ? req.body.imagesToDelete : [req.body.imagesToDelete];
+        const imgUrls = req.files.map(file => file.path);
         console.log("Images to delete:", imagesToDelete);
-        const updatedPost = await postService.updatePost(postId, postData, imageFiles, imagesToDelete);
+        const updatedPost = await postService.updatePost(postId, postData, imgUrls, imagesToDelete);
         return res.status(200).json({
             error: 0,
             error_text: "Bài đăng đã được cập nhật thành công!",

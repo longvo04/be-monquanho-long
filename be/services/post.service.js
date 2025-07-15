@@ -4,29 +4,41 @@ const PostLikesModel = require('../models/post/post_likes.model');
 const PostCategoriesModel = require('../models/post/post_categories.model');
 const PostImagesModel = require('../models/post/post_images.model');
 const commentService = require('./comment.service');
-const { uploadImageToCloudinary, deleteImageFromCloudinary } = require('../middleware/cloudinary.middleware');
-const POSTS_IMAGES_PATH = 'posts' // Đường dẫn lưu ảnh bài đăng trên Cloudinary
+const { deleteImageFromCloudinary } = require('../middleware/cloudinary.middleware');
 
 // Tạo Post mới
-exports.createPost = async (postData, imageFiles) => {
+exports.createPost = async (postData) => {
     try {
 
         // Thêm ảnh vào dữ liệu bài đăng nếu có
-        const imageUrls = await uploadImageToCloudinary(imageFiles, POSTS_IMAGES_PATH);
         const communityPost = new CommunityPostsModel(postData);
         const savedPost = await communityPost.save();
         // Nếu có ảnh, lưu vào PostImagesModel refer đến post id hiện tại
-        if (imageUrls.length > 0) {
-            const postImages = imageUrls.map(url => ({
-                post_id: savedPost._id,
-                image_url: url
-            }));
-            await PostImagesModel.insertMany(postImages);
-        }
-        return {...savedPost.toObject(), images: imageUrls };
+        return {...savedPost.toObject()};
     } catch (error) {
         console.error("Lỗi khi tạo bài viết mới:", error.message);
         throw new Error("Lỗi khi tạo bài viết mới: " + error.message);
+    }
+};
+
+exports.addImagesToPost = async (postId, imgUrls) => {
+    try {
+        // Kiểm tra xem bài đăng có tồn tại không
+        const post = await CommunityPostsModel.findById(postId);
+        if (!post) {
+            throw new Error("Bài đăng không tồn tại");
+        }
+        // Tạo ảnh mới từ các file đã upload
+        const postImages = imgUrls.map(url => ({
+            post_id: postId,
+            image_url: url
+        }));
+        // Lưu các ảnh vào PostImagesModel
+        const savedImages = await PostImagesModel.insertMany(postImages);
+        return savedImages;
+    } catch (error) {
+        console.error("Lỗi khi thêm ảnh vào bài viết:", error.message);
+        throw new Error("Lỗi khi thêm ảnh vào bài viết: " + error.message);
     }
 };
 
@@ -190,7 +202,7 @@ exports.deleteAllPosts = async () => {
     }
 }
 
-exports.updatePost = async (id, updateData, imageFiles, removedImagesId) => {
+exports.updatePost = async (id, updateData, imgUrls, removedImagesId) => {
     try {
         // Xóa ảnh khỏi cloundinary nếu có ảnh bị xóa
         if (removedImagesId && removedImagesId.length > 0) {
@@ -198,17 +210,15 @@ exports.updatePost = async (id, updateData, imageFiles, removedImagesId) => {
                 const image = await PostImagesModel.findById(imageId);
                 if (image) {
                     // Xóa ảnh khỏi Cloudinary
-                    deleteImageFromCloudinary(image.image_url.split('/').pop().split('.')[0]);
+                    const publicId = image.image_url.split('/').pop().split('.')[0].trim();
+                    deleteImageFromCloudinary(publicId);
                 }
             });
             await Promise.all(deletePromises);
+            // Xóa ảnh khỏi PostImagesModel
             await PostImagesModel.deleteMany({ _id: { $in: removedImagesId } });
         }
-        // Nếu có ảnh mới, tải lên Cloudinary
-        let imageUrls = [];
-        if (imageFiles && imageFiles.length > 0) {
-            imageUrls = await uploadImageToCloudinary(imageFiles, POSTS_IMAGES_PATH);
-        }
+        // Nếu thêm ảnh mới vào PostImagesModel
 
         const updatedPost = await CommunityPostsModel.findByIdAndUpdate(
             id,
@@ -221,15 +231,15 @@ exports.updatePost = async (id, updateData, imageFiles, removedImagesId) => {
         }
 
         // Nếu có ảnh mới, lưu vào PostImagesModel refer đến post id hiện tại
-        if (imageUrls.length > 0) {
-            const postImages = imageUrls.map(url => ({
+        if (imgUrls.length > 0) {
+            const postImages = imgUrls.map(url => ({
                 post_id: id,
                 image_url: url
             }));
             await PostImagesModel.insertMany(postImages);
         }
 
-        return { ...updatedPost.toObject(), images: imageUrls };
+        return { ...updatedPost.toObject(), images: imgUrls };
     } catch (error) {
         console.error("Lỗi khi cập nhật bài viết:", error.message);
         throw new Error("Lỗi khi cập nhật bài viết: " + error.message);
