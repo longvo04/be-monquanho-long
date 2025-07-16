@@ -1,6 +1,6 @@
 
-const CommunityCommentsModel = require("../../models/comment/community_comments.model");
-const Comment_likesModel = require("../../models/comment/comment_likes.model");
+const CommunityCommentsModel = require("../../models/post/community_comments.model");
+const Comment_likesModel = require("../../models/post/comment_likes.model");
 const CommunityPostsModel = require("../../models/post/community_posts.model");
 
 module.exports = {
