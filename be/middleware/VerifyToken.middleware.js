@@ -28,8 +28,7 @@ function verifyToken(req, res, next) {
   } catch (err) {
     return res.status(401).json({
       error: 401,
-      err: err,
-      error_text: "Token không hợp lệ!.",
+      error_text: "Token không hợp lệ!",
       data_name: "Xác thực",
       data: []
     });

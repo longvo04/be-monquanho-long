@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
-const PostImagesSchema = new mongoose.Schema({
-    post_id: { type: mongoose.Schema.Types.ObjectId, ref: "CommunityPosts", required: true }, // Bài đăng mà ảnh thuộc về
-    image_url: { type: String },
-    created_at: { type: Date, default: Date.now }, // Thời điểm gửi ảnh
+const PostImageSchema = new mongoose.Schema({
+    post_id: { type: mongoose.Schema.Types.ObjectId, ref: "CommunityPost", required: true }, // Khóa ngoại sang community_posts.id
+    image_url: { type: String, required: true }, // Đường dẫn ảnh
+    created_at: { type: Date, default: Date.now }, // Thời điểm upload ảnh
 });
 
-module.exports = mongoose.model("PostImages", PostImagesSchema);
+module.exports = mongoose.model("PostImage", PostImageSchema);
