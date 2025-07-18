@@ -1,0 +1,345 @@
+📦be
+ ┣ 📂configs
+ ┃ ┗ 📜database.js
+ ┣ 📂constants
+ ┣ 📂controllers
+ ┃ ┗ 📜authenticate.controller.js
+ ┣ 📂helpers
+ ┣ 📂middleware
+ ┃ ┣ 📜checkRole.middleware.js
+ ┃ ┗ 📜VerifyToken.middleware.js
+ ┣ 📂models
+ ┃ ┣ 📂auth
+ ┃ ┃ ┣ 📜login_log.model.js
+ ┃ ┃ ┣ 📜user.model.js
+ ┃ ┃ ┣ 📜user_otp.model.js
+ ┃ ┃ ┗ 📜user_token.model.js
+ ┃ ┗ 📂product
+ ┣ 📂routes
+ ┃ ┗ 📜index.routes.js
+ ┣ 📂services
+ ┃ ┗ 📜user.service.js
+ ┣ 📂utils
+ ┃ ┗ 📜sendMail.js
+ ┣ 📜.env
+ ┣ 📜.gitignore
+ ┣ 📜index.js
+ ┣ 📜package-lock.json
+ ┗ 📜package.json
+-------------------------------------------------------------------------------------------------------------------
+configs
+Chức năng:
+ Chứa các file cấu hình của hệ thống, ví dụ cấu hình database, cấu hình môi trường, cấu hình email, cấu hình third-party services...
+Ví dụ:
+database.js: Chứa thông tin kết nối CSDL (MySQL, MongoDB, v.v.), pool config, v.v.
+
+constants
+Chức năng:
+ Chứa các hằng số dùng chung cho toàn bộ dự án. Giúp tránh hardcode, dễ sửa đổi và bảo trì.
+Ví dụ:
+roles.js: Định nghĩa các quyền hạn như ADMIN, USER, v.v.
+messages.js: Lưu các thông báo chung.
+
+middleware
+Chức năng:
+ Chứa các hàm xử lý trung gian trong quá trình request, như kiểm tra xác thực, phân quyền, xử lý lỗi, v.v.
+Ví dụ:
+checkRole.middleware.js: Kiểm tra quyền hạn của user trước khi cho phép thực hiện hành động nào đó.
+VerifyToken.middleware.js: Kiểm tra token xác thực của người dùng.
+
+utils
+Chức năng:
+ Chứa các hàm tiện ích dùng chung, hỗ trợ tái sử dụng nhiều nơi trong project, giúp code gọn và dễ bảo trì.
+Ví dụ:
+hash.util.js: Mã hóa password.
+date.util.js: Xử lý ngày giờ.
+mailer.util.js (hoặc sendMail.js): Gửi email xác thực, thông báo, v.v.
+
+services
+Chức năng:
+ Chứa các hàm xử lý nghiệp vụ chính (business logic) cho từng phần của ứng dụng, thường được gọi từ controller.
+Giải thích lỗi:
+console.error("Lỗi ………..:", error.message);
+ => In ra lỗi lên terminal (hoặc console của server).
+ Giúp lập trình viên hoặc admin biết được chi tiết lỗi khi kiểm tra hoặc debug server.
+
+controllers
+Chức năng:
+ Nhận request từ phía client, gọi các service để xử lý logic, sau đó trả response về cho client.
+Giải thích lỗi:
+res.status(500).json({ status: false, message: "Lỗi server" });
+ => Trả về lỗi ở dạng JSON cho phía client hoặc người test API.
+ Giúp client biết có lỗi xảy ra (ví dụ: hiện popup thông báo trên giao diện, hoặc hiện lỗi trong Postman).
+
+helpers
+Chức năng:
+ Chứa các hàm hỗ trợ chuyên biệt cho từng tác vụ nhỏ (khác với utils là helpers thường phục vụ 1 logic cụ thể hơn).
+Ví dụ:
+Hàm xử lý format lại dữ liệu trả về.
+Hàm chuyển đổi đơn vị, tính toán nhỏ trong từng use-case.
+
+models
+Chức năng:
+ Chứa các file định nghĩa cấu trúc dữ liệu (schema) cho database, ORM/ODM (Mongoose với MongoDB, Sequelize với SQL, v.v.)
+Ví dụ:
+auth/user.model.js: Định nghĩa cấu trúc bảng/thực thể User.
+auth/login_log.model.js: Lưu lại log đăng nhập.
+auth/user_token.model.js: Lưu token xác thực của user.
+product/: Định nghĩa các model liên quan đến sản phẩm.
+
+routes
+Chức năng:
+ Khai báo các endpoint (đường dẫn API) của hệ thống, mapping route => controller.
+Ví dụ:
+index.routes.js: Tập trung khai báo các route chính, phân chia sub-route (user, product, auth, ...).
+
+Một số file đặc biệt 
+.env
+Chứa các biến môi trường (DB_HOST, DB_USER, JWT_SECRET, ...).
+.gitignore
+Khai báo các file/folder không muốn commit lên git (node_modules, .env, ...).
+index.js
+Entry point của ứng dụng (file chạy chính). Thường sẽ gọi khởi tạo server, load middleware, routes, ...
+package.json
+Quản lý thông tin project, các dependencies (thư viện), script chạy build/start.
+package-lock.json
+Lưu lại chính xác version của dependencies đã cài (giúp đồng bộ code giữa các máy).
+
+-------------------------------------------------------------------------------------------------------------------
+📦src
+ ┣ 📂admin
+ ┃ ┣ 📂assets
+ ┃ ┣ 📂components
+ ┃ ┣ 📂layouts
+ ┃ ┣ 📂routes
+ ┃ ┣ 📂theme
+ ┃ ┗ 📂views
+ ┣ 📂api
+ ┃ ┗ 📜UserApi.js
+ ┣ 📂user
+ ┃ ┣ 📂assets
+ ┃ ┃ ┣ 📜banner.png
+ ┃ ┃ ┣ 📜login.png
+ ┃ ┃ ┗ 📜MonQuaNho.png
+ ┃ ┣ 📂components
+ ┃ ┃ ┣ 📜Footer.jsx
+ ┃ ┃ ┗ 📜Header.jsx
+ ┃ ┣ 📂layouts
+ ┃ ┣ 📂routes
+ ┃ ┃ ┗ 📜RouterUser.jsx
+ ┃ ┣ 📂theme
+ ┃ ┗ 📂views
+ ┃ ┃ ┣ 📂Authorization
+ ┃ ┃ ┃ ┣ 📜login.jsx
+ ┃ ┃ ┃ ┗ 📜register.jsx
+ ┃ ┃ ┣ 📂CharityPrograms
+ ┃ ┃ ┃ ┣ 📂Banner
+ ┃ ┃ ┃ ┃ ┗ 📜BannerSection.jsx
+ ┃ ┃ ┃ ┣ 📂FeaturedPrograms
+ ┃ ┃ ┃ ┃ ┣ 📜FeaturedProgramCard.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜FeaturedProgramsList.jsx
+ ┃ ┃ ┃ ┣ 📂HowToDonate
+ ┃ ┃ ┃ ┃ ┗ 📜HowToDonate.jsx
+ ┃ ┃ ┃ ┣ 📂PopularPrograms
+ ┃ ┃ ┃ ┃ ┣ 📜PopularProgramCard.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜PopularProgramsList.jsx
+ ┃ ┃ ┃ ┗ 📜CharityProgramsPage.jsx
+ ┃ ┃ ┣ 📂community
+ ┃ ┃ ┃ ┣ 📂PostEditor
+ ┃ ┃ ┃ ┃ ┗ 📜PostEditor.jsx
+ ┃ ┃ ┃ ┣ 📂PostList
+ ┃ ┃ ┃ ┃ ┣ 📜CommentSection.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜PostItem.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜PostList.jsx
+ ┃ ┃ ┃ ┣ 📂Sidebar
+ ┃ ┃ ┃ ┃ ┣ 📜CommunityNotice.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜CommunityReviews.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜CommunityTags.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜LatestPosts.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜TopContributors.jsx
+ ┃ ┃ ┃ ┣ 📂Tabs
+ ┃ ┃ ┃ ┃ ┗ 📜CommunityTabs.jsx
+ ┃ ┃ ┃ ┗ 📜CommunityPage.jsx
+ ┃ ┃ ┣ 📂ContactSection
+ ┃ ┃ ┃ ┣ 📂ContactForm
+ ┃ ┃ ┃ ┃ ┗ 📜ContactForm.jsx
+ ┃ ┃ ┃ ┣ 📂ContactInfo
+ ┃ ┃ ┃ ┃ ┗ 📜ContactInfo.jsx
+ ┃ ┃ ┃ ┣ 📂Map
+ ┃ ┃ ┃ ┃ ┗ 📜Map.jsx
+ ┃ ┃ ┃ ┗ 📜FullContactSection.jsx
+ ┃ ┃ ┣ 📂Home
+ ┃ ┃ ┃ ┣ 📂Banner
+ ┃ ┃ ┃ ┃ ┗ 📜BannerSection.jsx
+ ┃ ┃ ┃ ┣ 📂CallToAction
+ ┃ ┃ ┃ ┃ ┗ 📜CallToAction.jsx
+ ┃ ┃ ┃ ┣ 📂CustomerReviews
+ ┃ ┃ ┃ ┃ ┗ 📜CustomerReviews.jsx
+ ┃ ┃ ┃ ┣ 📂HowItWorks
+ ┃ ┃ ┃ ┃ ┗ 📜HowItWorks.jsx
+ ┃ ┃ ┃ ┣ 📂ProductSection
+ ┃ ┃ ┃ ┃ ┣ 📜CategoryProducts.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜PopularProducts.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜ProductCategories.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜ProductItem.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜ProductList.jsx
+ ┃ ┃ ┃ ┣ 📂SearchFilter
+ ┃ ┃ ┃ ┃ ┣ 📜FilterBar.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜SearchBar.jsx
+ ┃ ┃ ┃ ┣ 📂WhyUs
+ ┃ ┃ ┃ ┃ ┗ 📜WhyUs.jsx
+ ┃ ┃ ┃ ┗ 📜FullHome.jsx
+ ┃ ┃ ┣ 📂Messenger
+ ┃ ┃ ┃ ┣ 📂ChatWindow
+ ┃ ┃ ┃ ┃ ┣ 📜ChatHeader.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜MessageInput.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜MessageItem.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜MessageList.jsx
+ ┃ ┃ ┃ ┣ 📂Sidebar
+ ┃ ┃ ┃ ┃ ┣ 📜ChatList.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜ChatListItem.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜StatusList.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜UserProfileCard.jsx
+ ┃ ┃ ┃ ┗ 📜MessengerPage.jsx
+ ┃ ┃ ┣ 📂PostGift
+ ┃ ┃ ┃ ┣ 📜index.jsx
+ ┃ ┃ ┃ ┣ 📜PostGiftCategorySelect.jsx
+ ┃ ┃ ┃ ┣ 📜PostGiftConditionSelect.jsx
+ ┃ ┃ ┃ ┣ 📜PostGiftDeliveryMethod.jsx
+ ┃ ┃ ┃ ┣ 📜PostGiftForm.jsx
+ ┃ ┃ ┃ ┣ 📜PostGiftImageUpload.jsx
+ ┃ ┃ ┃ ┗ 📜PostGiftLocationSelect.jsx
+ ┃ ┃ ┣ 📂product
+ ┃ ┃ ┃ ┣ 📂Banner
+ ┃ ┃ ┃ ┃ ┗ 📜ProductBanner.jsx
+ ┃ ┃ ┃ ┣ 📂Pagination
+ ┃ ┃ ┃ ┃ ┗ 📜Pagination.jsx
+ ┃ ┃ ┃ ┣ 📂ProductList
+ ┃ ┃ ┃ ┃ ┣ 📜ProductItem.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜ProductList.jsx
+ ┃ ┃ ┃ ┣ 📂SearchFilter
+ ┃ ┃ ┃ ┃ ┣ 📜FilterBar.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜SearchBar.jsx
+ ┃ ┃ ┃ ┣ 📂Sidebar
+ ┃ ┃ ┃ ┃ ┣ 📜FeaturedPosts.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜ProductReviews.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜ProductTags.jsx
+ ┃ ┃ ┃ ┗ 📜ProductListingPage.jsx
+ ┃ ┃ ┣ 📂ProductDetailPage
+ ┃ ┃ ┃ ┣ 📂Banner
+ ┃ ┃ ┃ ┃ ┗ 📜ProductBanner.jsx
+ ┃ ┃ ┃ ┣ 📂Pagination
+ ┃ ┃ ┃ ┃ ┗ 📜Pagination.jsx
+ ┃ ┃ ┃ ┣ 📂ProductDetailMain
+ ┃ ┃ ┃ ┃ ┣ 📜ProductCarousel.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜ProductDescription.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜ProductFeatures.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜ProductTitle.jsx
+ ┃ ┃ ┃ ┣ 📂RelatedProducts
+ ┃ ┃ ┃ ┃ ┣ 📜RelatedProductItem.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜RelatedProductsList.jsx
+ ┃ ┃ ┃ ┣ 📂Sidebar
+ ┃ ┃ ┃ ┃ ┣ 📜FeaturedPosts.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜GiverInfo.jsx
+ ┃ ┃ ┃ ┃ ┣ 📜ProductReviews.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜ProductTags.jsx
+ ┃ ┃ ┃ ┗ 📜ProductDetailPage.jsx
+ ┃ ┃ ┣ 📂Profile
+ ┃ ┃ ┃ ┣ 📂ProductList
+ ┃ ┃ ┃ ┃ ┣ 📜ProductItem.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜ProductList.jsx
+ ┃ ┃ ┃ ┣ 📂Sidebar
+ ┃ ┃ ┃ ┃ ┗ 📜ProfileAdBanner.jsx
+ ┃ ┃ ┃ ┣ 📂Tabs
+ ┃ ┃ ┃ ┃ ┗ 📜ProfileTabs.jsx
+ ┃ ┃ ┃ ┣ 📂UserCard
+ ┃ ┃ ┃ ┃ ┗ 📜UserCard.jsx
+ ┃ ┃ ┃ ┗ 📜ProfilePage.jsx
+ ┃ ┃ ┣ 📂ProfileSetting
+ ┃ ┃ ┃ ┣ 📂GiftManager
+ ┃ ┃ ┃ ┃ ┣ 📜GiftItem.jsx
+ ┃ ┃ ┃ ┃ ┗ 📜GiftList.jsx
+ ┃ ┃ ┃ ┣ 📂ProfileForm
+ ┃ ┃ ┃ ┃ ┗ 📜ProfileForm.jsx
+ ┃ ┃ ┃ ┣ 📂Sidebar
+ ┃ ┃ ┃ ┃ ┗ 📜ProfileSidebar.jsx
+ ┃ ┃ ┃ ┣ 📂Tabs
+ ┃ ┃ ┃ ┃ ┗ 📜SettingTabs.jsx
+ ┃ ┃ ┃ ┗ 📜ProfileSettingPage.jsx
+ ┃ ┃ ┗ 📂Roadmap
+ ┃ ┃ ┃ ┣ 📜FeatureItem.jsx
+ ┃ ┃ ┃ ┣ 📜FeedbackSection.jsx
+ ┃ ┃ ┃ ┣ 📜Roadmap.jsx
+ ┃ ┃ ┃ ┣ 📜RoadmapNote.jsx
+ ┃ ┃ ┃ ┗ 📜RoadmapSection.jsx 
+ ┣ 📜App.css
+ ┣ 📜App.jsx
+ ┣ 📜index.css
+ ┗ 📜main.jsx
+
+-------------------------------------------------------------------------------------------------------------------
+ 📂src
+Chức năng:
+ Thư mục chính chứa toàn bộ source code của ứng dụng React (component, page, style, logic, API...).
+1. 📂admin
+Chứa các file, component, layout... dành riêng cho giao diện quản trị (Admin).
+📂assets:
+ Hình ảnh, icon, font... dùng riêng cho admin.
+📂components:
+ Các component nhỏ như button, input, table... dùng cho admin.
+📂layouts:
+ Định nghĩa bố cục tổng thể của admin (header, sidebar, footer...).
+footer: Chứa component chân trang Admin.
+header: Chứa header, thông tin tài khoản, v.v.
+shared: Các thành phần dùng chung (ví dụ: logo, loadable).
+sidebar: Sidebar menu, navigation nhóm/phần tử.
+AdminLayout.jsx: Layout tổng hợp cho admin.
+📂routes:
+ Định nghĩa router riêng cho admin (route tới từng trang admin).
+📂theme:
+ Cấu hình style, màu sắc, theme của admin (nếu có).
+📂views:
+ Các trang (page) chính dành cho admin (ví dụ: Homeadmin.jsx là trang chủ admin).
+2. 📂api
+Chứa các file xử lý call API đến backend (REST, GraphQL...).
+UserApi.js: Xử lý API liên quan đến user.
+3. 📂user
+Chứa tất cả phần giao diện, component, page,... cho phía người dùng thông thường (User)
+📂assets:
+ Hình ảnh, logo, banner dùng cho user.
+📂components:
+ Các component dùng chung như header, footer,...
+📂layouts:
+ Định nghĩa bố cục tổng thể cho user (có thể có header, footer, sidebar riêng).
+📂routes:
+ Định nghĩa router riêng cho phần user.
+📂theme:
+ Cấu hình style, màu sắc, theme cho user.
+📂views:
+ Chứa các page (trang) của user. Có thể chia nhỏ thành từng phần chức năng/phân hệ:
+
+Authorization: Trang login, register...
+CharityPrograms: Các trang chương trình từ thiện, chia nhỏ ra từng section.
+community: Trang cộng đồng, quản lý post, comment, sidebar, tabs,...
+ContactSection: Thông tin liên hệ, bản đồ, form liên hệ,...
+Home: Trang chủ user, chia nhỏ ra từng section (banner, sản phẩm, lý do chọn, v.v).
+Messenger: Chat, sidebar, chat window, message...
+PostGift: Đăng tặng quà, chọn loại, điều kiện, upload ảnh...
+product: Trang danh sách sản phẩm, chi tiết sản phẩm...
+ProductDetailPage: Trang chi tiết sản phẩm, chia nhỏ thành nhiều phần (banner, mô tả, review, sản phẩm liên quan...).
+Profile: Trang cá nhân, sản phẩm cá nhân, quảng cáo, tabs, user card,...
+ProfileSetting: Cài đặt profile, quản lý quà tặng, form chỉnh sửa thông tin, sidebar...
+Roadmap: Lộ trình phát triển, phản hồi, các feature sắp tới,...
+
+4. Các file cấu hình và hệ thống
+App.jsx: File gốc, root component của ứng dụng.
+main.jsx: Entry point, nơi khởi tạo React app, render vào DOM.
+index.css, App.css: Style toàn app.
+.env: Biến môi trường frontend (API_URL, ...).
+eslint.config.js: Cấu hình kiểm tra code chuẩn hóa.
+tailwind.config.js, postcss.config.js: Cấu hình cho Tailwind CSS, PostCSS.
+vite.config.js: Cấu hình Vite (build tool).
+index.html: Trang HTML gốc, nơi React mount vào (#root).
+package.json, package-lock.json: Quản lý package, dependencies, scripts.
+README.md: File giới thiệu dự án, hướng dẫn setup.
+
